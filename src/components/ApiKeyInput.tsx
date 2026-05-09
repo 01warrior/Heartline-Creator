@@ -17,7 +17,7 @@ export function ApiKeyInput({ onKeySubmit }: ApiKeyInputProps) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FDFCFB] text-[#2D2D2D] font-sans p-6">
-      <div className="max-w-md w-full border border-[#E5E1DA] rounded-xl p-8 bg-white shadow-sm">
+      <div className="max-w-md w-full border border-[#E5E1DA] rounded-3xl p-8 bg-white shadow-sm">
         <div className="flex items-center justify-center w-12 h-12 bg-[#F5F2EE] rounded-full mb-6 mx-auto">
           <Key className="w-6 h-6 text-[#C5A880]" />
         </div>
@@ -35,7 +35,7 @@ export function ApiKeyInput({ onKeySubmit }: ApiKeyInputProps) {
               type="password"
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              className="w-full bg-[#F5F2EE] border border-transparent rounded-lg px-4 py-3 text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#C5A880] transition-colors"
+              className="w-full bg-[#F5F2EE] border border-transparent rounded-full px-6 py-3 text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#C5A880] transition-colors"
               placeholder="AIzaSy..."
             />
           </div>
