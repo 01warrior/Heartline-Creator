@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions } from '../services/gemini';
+import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES } from '../services/gemini';
 import { ApiKeyInput } from './ApiKeyInput';
 import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle } from 'lucide-react';
 
@@ -32,6 +32,7 @@ export function WorkflowApp() {
   const [scriptModel, setScriptModel] = useState('gemini-3-flash-preview');
   const [imageModel, setImageModel] = useState('gemini-2.5-flash-image');
   const [ttsModel, setTtsModel] = useState('gemini-2.5-flash-tts');
+  const [selectedVoice, setSelectedVoice] = useState('Kore');
 
   const handleKeySubmit = (key: string) => {
     localStorage.setItem('GEMINI_API_KEY', key);
@@ -107,7 +108,7 @@ export function WorkflowApp() {
 
       // 2. Generate Full Audio
       const fullText = scenes.map(s => s.phrase).join(". ");
-      const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel);
+      const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
       setFullAudioPcm(audio);
       
       completedCount++;
@@ -460,6 +461,22 @@ export function WorkflowApp() {
                     <option value="gemini-2.5-pro-tts">Gemini 2.5 Pro TTS</option>
                     <option value="gemini-3.1-flash-tts-preview">Gemini 3.1 Flash TTS</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-3">AI Voice (Tone)</label>
+                  <select 
+                    value={selectedVoice} 
+                    onChange={e => setSelectedVoice(e.target.value)}
+                    className="w-full bg-white border border-[#E5E1DA] p-4 rounded-xl text-sm focus:outline-none focus:border-[#C5A880] appearance-none"
+                  >
+                    {AVAILABLE_VOICES.map(voice => (
+                      <option key={voice} value={voice}>{voice}</option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-[10px] text-[#A8A196] leading-relaxed italic">
+                    Available: Puck (M), Charon (M), Kore (F), Fenrir (M), Aoede (F).
+                  </p>
                 </div>
               </div>
 
