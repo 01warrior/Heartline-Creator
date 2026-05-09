@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions } from '../services/gemini';
 import { ApiKeyInput } from './ApiKeyInput';
-import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle } from 'lucide-react';
 
 type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
 
@@ -24,6 +24,7 @@ export function WorkflowApp() {
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [error, setError] = useState<{title: string, message: string} | null>(null);
   const [rightPanelState, setRightPanelState] = useState<'IDLE' | 'GENERATING' | 'PLAYER'>('IDLE');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -37,6 +38,28 @@ export function WorkflowApp() {
     setApiKey(key);
   };
 
+  const parseGeminiError = (err: any) => {
+    try {
+      const errorStr = (err?.message || "").toString() + JSON.stringify(err);
+      if (errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+        return {
+          title: "Quota Exceeded",
+          message: "You've hit the Gemini API free tier limit. This usually happens after a few generations in a minute. Please wait about 60 seconds and try again."
+        };
+      }
+      if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
+        return {
+          title: "Permission Denied",
+          message: "Please ensure your Gemini API Key is valid and has access to the models selected in settings."
+        };
+      }
+    } catch (e) {}
+    return {
+      title: "AI Generation Error",
+      message: typeof err === 'string' ? err : (err.message || "An unexpected error occurred while communicating with the AI.")
+    };
+  };
+
   const handleGeneratePoem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic) return;
@@ -46,8 +69,8 @@ export function WorkflowApp() {
       setScenes(phrases.map(phrase => ({ phrase })));
       setRightPanelState('IDLE');
     } catch (err) {
-      alert("Error generating poem. Check API Key or try again.");
-      console.error(err);
+      setError(parseGeminiError(err));
+      setRightPanelState('IDLE');
     } finally {
       setIsGeneratingPoem(false);
     }
@@ -62,19 +85,24 @@ export function WorkflowApp() {
     
     try {
       // 1. Generate Images
-      const updatedScenes = await Promise.all(scenes.map(async (scene) => {
+      const updatedScenes = [];
+      for (const scene of scenes) {
         try {
           const image = await generateImageForPhrase(apiKey, scene.phrase, imageStyle, imageModel);
           completedCount++;
           setGenerationProgress((completedCount / totalTasks) * 100);
-          return { ...scene, image };
-        } catch (e) {
+          updatedScenes.push({ ...scene, image });
+        } catch (e: any) {
+          const errorInfo = parseGeminiError(e);
+          if (errorInfo.title === "Quota Exceeded") {
+            throw e; // Relaunch to be caught by main block
+          }
           console.error("Error generating image:", e);
           completedCount++;
           setGenerationProgress((completedCount / totalTasks) * 100);
-          return scene;
+          updatedScenes.push(scene);
         }
-      }));
+      }
       setScenes(updatedScenes);
 
       // 2. Generate Full Audio
@@ -86,7 +114,7 @@ export function WorkflowApp() {
       setGenerationProgress(100);
       setRightPanelState('PLAYER');
     } catch (err) {
-      alert("Error generating production assets.");
+      setError(parseGeminiError(err));
       setRightPanelState('IDLE');
     }
   };
@@ -173,7 +201,7 @@ export function WorkflowApp() {
                           setSuggestions(suggestionsList);
                           setIsSuggestionsModalOpen(true);
                         } catch (e) {
-                          console.error("Suggestions failed", e);
+                          setError(parseGeminiError(e));
                         } finally {
                           setIsSuggesting(false);
                         }
@@ -402,6 +430,7 @@ export function WorkflowApp() {
                     onChange={e => setScriptModel(e.target.value)}
                     className="w-full bg-white border border-[#E5E1DA] p-4 rounded-xl text-sm focus:outline-none focus:border-[#C5A880] appearance-none"
                   >
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Ultra Fast)</option>
                     <option value="gemini-3-flash-preview">Gemini 3 Flash (Fast)</option>
                     <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Advanced)</option>
                     <option value="gemini-2.5-flash-preview">Gemini 2.5 Flash</option>
@@ -479,6 +508,8 @@ export function WorkflowApp() {
                    try {
                      const suggestionsList = await generateTopicSuggestions(apiKey, scriptModel);
                      setSuggestions(suggestionsList);
+                   } catch (e) {
+                     setError(parseGeminiError(e));
                    } finally {
                      setIsSuggesting(false);
                    }
@@ -488,6 +519,46 @@ export function WorkflowApp() {
               >
                 {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Feather className="w-4 h-4" />}
                 Generate more ideas
+              </button>
+           </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {error && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-2xl space-y-6 animate-in zoom-in-95 duration-300 border border-red-100">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">{error.title}</h2>
+                  <p className="text-[#7A7570] text-sm mt-2 leading-relaxed">
+                    {error.message}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#FAF9F7] p-4 rounded-2xl border border-[#E5E1DA]">
+                <p className="text-[11px] font-bold text-[#A8A196] uppercase tracking-wider mb-2">How to solve this?</p>
+                <ul className="text-xs text-[#7A7570] space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">1</span>
+                    Wait 60 seconds before trying again.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">2</span>
+                    Consider using a Gemini Pro model in settings for higher limits.
+                  </li>
+                </ul>
+              </div>
+
+              <button 
+                onClick={() => setError(null)}
+                className="w-full py-4 bg-[#1A1A1A] text-white rounded-full font-bold text-sm hover:bg-black transition-colors"
+              >
+                Understood
               </button>
            </div>
         </div>
