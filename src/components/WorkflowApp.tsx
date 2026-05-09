@@ -85,29 +85,44 @@ export function WorkflowApp() {
     const totalTasks = scenes.length + 1; // Images + 1 Full Audio
     
     try {
-      // 1. Generate Images
-      const updatedScenes = [];
-      for (const scene of scenes) {
-        try {
-          const image = await generateImageForPhrase(apiKey, scene.phrase, imageStyle, imageModel);
+      // Create a local copy of scenes to work with
+      let currentScenes = [...scenes];
+      
+      // 1. Generate Images one by one
+      for (let i = 0; i < currentScenes.length; i++) {
+        // Skip if image already exists (allows resuming)
+        if (currentScenes[i].image) {
           completedCount++;
           setGenerationProgress((completedCount / totalTasks) * 100);
-          updatedScenes.push({ ...scene, image });
+          continue;
+        }
+
+        try {
+          const image = await generateImageForPhrase(apiKey, currentScenes[i].phrase, imageStyle, imageModel);
+          
+          // Update the specific scene immediately
+          const newScenes = [...currentScenes];
+          newScenes[i] = { ...newScenes[i], image };
+          currentScenes = newScenes;
+          setScenes(newScenes); // Commit to state immediately
+          
+          completedCount++;
+          setGenerationProgress((completedCount / totalTasks) * 100);
         } catch (e: any) {
           const errorInfo = parseGeminiError(e);
           if (errorInfo.title === "Quota Exceeded") {
-            throw e; // Relaunch to be caught by main block
+            setError(errorInfo);
+            setRightPanelState('IDLE');
+            return; // Stop processing but keep state
           }
-          console.error("Error generating image:", e);
+          console.error(`Error generating image for scene ${i}:`, e);
           completedCount++;
           setGenerationProgress((completedCount / totalTasks) * 100);
-          updatedScenes.push(scene);
         }
       }
-      setScenes(updatedScenes);
 
       // 2. Generate Full Audio
-      const fullText = scenes.map(s => s.phrase).join(". ");
+      const fullText = currentScenes.map(s => s.phrase).join(". ");
       const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
       setFullAudioPcm(audio);
       
