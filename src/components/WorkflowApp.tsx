@@ -514,9 +514,9 @@ export function WorkflowApp() {
       </div>
 
       {/* RIGHT PANEL: Player or Generating */}
-      <div className="w-full lg:w-1/2 p-6 lg:p-12 flex flex-col items-center justify-center bg-[#FDFCFB] relative h-screen">
+      <div className="w-full lg:w-1/2 p-6 lg:p-8 flex flex-col items-center justify-center bg-[#FDFCFB] relative h-auto lg:h-screen lg:overflow-y-auto">
          {(rightPanelState !== 'IDLE' || scenes.some(s => s.image)) && (
-           <div className="absolute top-8 right-8 z-20 flex gap-2">
+           <div className="absolute top-6 right-6 z-20 flex gap-2">
              <button 
                 onClick={() => setIsAssetsModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-[#E5E1DA] rounded-full text-xs font-bold uppercase tracking-widest text-[#1A1A1A] hover:bg-white hover:border-[#C5A880] transition-all shadow-sm"
@@ -528,25 +528,25 @@ export function WorkflowApp() {
          )}
 
          {rightPanelState === 'IDLE' && (
-           <div className="text-center opacity-40">
+           <div className="text-center opacity-40 py-20">
              <ImageIcon className="w-16 h-16 mx-auto mb-4 text-[#A8A196]" />
              <p className="font-sans font-medium text-lg text-[#7A7570]">Your masterpiece awaits...</p>
            </div>
          )}
 
          {rightPanelState === 'GENERATING' && (
-           <div className="w-full max-w-sm mx-auto text-center">
-             <div className="relative w-24 h-24 mx-auto mb-10 text-[#C5A880]">
-               <Loader2 className="w-24 h-24 animate-spin opacity-20 relative z-10" strokeWidth={1} />
-               <div className="absolute inset-0 flex items-center justify-center -space-x-1">
-                  <ImageIcon className="w-5 h-5 text-[#A8A196] rotate-[-10deg] animate-pulse" />
-                  <Music className="w-5 h-5 text-[#A8A196] rotate-[10deg] animate-pulse delay-150" />
-               </div>
+           <div className="w-full max-w-sm mx-auto text-center py-10">
+             <div className="relative w-20 h-20 mx-auto mb-8 text-[#C5A880]">
+                <Loader2 className="w-20 h-20 animate-spin opacity-20 relative z-10" strokeWidth={1} />
+                <div className="absolute inset-0 flex items-center justify-center -space-x-1">
+                   <ImageIcon className="w-5 h-5 text-[#A8A196] rotate-[-10deg] animate-pulse" />
+                   <Music className="w-5 h-5 text-[#A8A196] rotate-[10deg] animate-pulse delay-150" />
+                </div>
              </div>
 
-             <h2 className="text-2xl font-sans text-[#1A1A1A] font-semibold mb-3">Crafting the experience...</h2>
+             <h2 className="text-xl font-sans text-[#1A1A1A] font-semibold mb-3">Crafting the experience...</h2>
              <p className="text-[#7A7570] mb-8 mx-auto leading-relaxed text-sm">
-               Generating 4K moody images and rendering high-fidelity AI audio streams for {scenes.length} beautiful scenes.
+               Generating 4K moody images and rendering high-fidelity AI audio streams.
              </p>
 
              <div className="h-1 bg-[#E5E1DA] rounded-full overflow-hidden w-full mx-auto shadow-inner">
@@ -562,74 +562,74 @@ export function WorkflowApp() {
          )}
 
          {rightPanelState === 'PLAYER' && (
-           <div className="w-full max-w-sm mx-auto">
-             <div className="flex items-center justify-between mb-6">
-                 <h3 className="uppercase text-xs font-bold tracking-widest text-[#A8A196]">Preview</h3>
-             </div>
+           <div className="w-full h-full max-h-[90vh] flex flex-col items-center justify-center py-4">
+             <div className="w-full max-w-[min(380px,75vh)] mx-auto flex flex-col h-full">
+               <div className="flex items-center justify-between mb-4 shrink-0 px-2">
+                   <h3 className="uppercase text-[10px] font-bold tracking-widest text-[#A8A196]">Preview Mode</h3>
+                   <div className="text-[10px] font-mono font-bold text-[#C5A880]">{currentSceneIndex + 1} / {scenes.length}</div>
+               </div>
 
-             <div className="relative bg-black aspect-[9/16] rounded-2xl overflow-hidden shadow-xl ring-4 ring-white group flex flex-col justify-center">
-                {scenes[currentSceneIndex]?.image && (
-                  <div className="absolute inset-0 block bg-black">
-                      <img 
-                        src={scenes[currentSceneIndex].image} 
-                        alt="scene background" 
-                        className="w-full h-full object-cover transition-transform duration-[4000ms] ease-linear scale-100 will-change-transform"
-                        style={{ transform: isPlaying ? 'scale(1.05)' : 'scale(1)' }} 
-                      />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/60 pointer-events-none"></div>
-                
-                <div className="absolute inset-x-0 bottom-0 z-20 p-8 pt-20 flex flex-col items-center justify-end pointer-events-none">
-                  <p 
-                     key={currentSceneIndex} 
-                     className="font-sans text-2xl font-bold text-white/90 leading-snug tracking-wide drop-shadow-2xl text-balance"
-                     style={{
-                         animation: isPlaying ? 'fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
-                         opacity: isPlaying ? 0 : 1
-                     }}
-                  >
-                     {scenes[currentSceneIndex]?.phrase}
-                  </p>
+               <div className="relative bg-black aspect-[9/16] rounded-[2.5rem] overflow-hidden shadow-2xl ring-8 ring-white group flex flex-col justify-center flex-1 min-h-0">
+                  {scenes[currentSceneIndex]?.image && (
+                    <div className="absolute inset-0 block bg-black">
+                        <img 
+                          src={scenes[currentSceneIndex].image} 
+                          alt="scene background" 
+                          className="w-full h-full object-cover transition-transform duration-[4000ms] ease-linear scale-100"
+                          style={{ transform: isPlaying ? 'scale(1.1)' : 'scale(1)' }} 
+                        />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-black/40 pointer-events-none"></div>
                   
-                  <div className="opacity-70 mt-8 w-12 h-1 bg-white/30 rounded-full overflow-hidden">
-                     {isPlaying && <div className="h-full bg-white w-full animate-progress-bar origin-left" />}
-                  </div>
-                </div>
-
-                {!isPlaying && (
-                    <button 
-                        onClick={playSequence}
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all hover:bg-black/20 group-hover:backdrop-blur-none z-30"
+                  <div className="absolute inset-x-0 bottom-0 z-20 p-8 pt-20 flex flex-col items-start justify-end pointer-events-none">
+                    <p 
+                       key={currentSceneIndex} 
+                       className="font-sans text-xl sm:text-2xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl text-balance"
+                       style={{
+                           animation: isPlaying ? 'fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
+                           opacity: isPlaying ? 0 : 1
+                       }}
                     >
-                        <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform hover:scale-110 active:scale-95 text-white">
-                            <Play className="w-8 h-8 ml-1" />
-                        </div>
-                    </button>
-                )}
-                
-                <style>{`
-                   @keyframes fadeInUp {
-                     0% { opacity: 0; transform: translateY(20px); }
-                     100% { opacity: 1; transform: translateY(0); }
-                   }
-                   @keyframes progress-bar {
-                       0% { transform: scaleX(0); }
-                       100% { transform: scaleX(1); }
-                   }
-                   .animate-progress-bar {
-                       animation: progress-bar 4s linear forwards;
-                   }
-                `}</style>
-             </div>
-             
-             <div className="mt-6 flex justify-between items-center px-2 text-[#7A7570] text-[10px] font-mono">
-                 <div className="flex space-x-1">
-                     {scenes.map((_, i) => (
-                         <div key={i} className={`h-1 w-6 rounded-full transition-colors duration-500 ${i === currentSceneIndex ? 'bg-[#1A1A1A]' : 'bg-[#E5E1DA]'}`}/>
-                     ))}
-                 </div>
-                 <div className="font-bold">{currentSceneIndex + 1} / {scenes.length}</div>
+                       {scenes[currentSceneIndex]?.phrase}
+                    </p>
+                    
+                    <div className="opacity-40 mt-6 w-full h-[3px] bg-white/20 rounded-full overflow-hidden">
+                       {isPlaying && <div className="h-full bg-white w-full animate-progress-bar origin-left" />}
+                    </div>
+                  </div>
+
+                  {!isPlaying && (
+                      <button 
+                          onClick={playSequence}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all hover:bg-black/30 z-30"
+                      >
+                          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95 text-[#1A1A1A]">
+                              <Play className="w-6 h-6 ml-1 fill-current" />
+                          </div>
+                      </button>
+                  )}
+               </div>
+               
+               <div className="mt-6 flex justify-center items-center gap-2 px-2 shrink-0">
+                   {scenes.map((_, i) => (
+                       <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === currentSceneIndex ? 'w-8 bg-[#C5A880]' : 'w-2 bg-[#E5E1DA]'}`}/>
+                   ))}
+               </div>
+
+               <style>{`
+                  @keyframes fadeInUp {
+                    0% { opacity: 0; transform: translateY(20px); }
+                    100% { opacity: 1; transform: translateY(0); }
+                  }
+                  @keyframes progress-bar {
+                      0% { transform: scaleX(0); }
+                      100% { transform: scaleX(1); }
+                  }
+                  .animate-progress-bar {
+                      animation: progress-bar 4s linear forwards;
+                  }
+               `}</style>
              </div>
            </div>
          )}
