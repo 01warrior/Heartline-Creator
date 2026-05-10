@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES } from '../services/gemini';
+import React, { useState, useMemo, useEffect } from 'react';
+import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, pcmToWav } from '../services/gemini';
 import { ApiKeyInput } from './ApiKeyInput';
-import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive } from 'lucide-react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
 
@@ -28,6 +30,21 @@ export function WorkflowApp() {
   const [rightPanelState, setRightPanelState] = useState<'IDLE' | 'GENERATING' | 'PLAYER'>('IDLE');
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [wavUrl, setWavUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fullAudioPcm) {
+      try {
+        const url = URL.createObjectURL(pcmToWav(fullAudioPcm));
+        setWavUrl(url);
+        return () => URL.revokeObjectURL(url);
+      } catch(e) {
+        console.error("Failed to convert PCM to WAV", e);
+      }
+    } else {
+      setWavUrl(null);
+    }
+  }, [fullAudioPcm]);
 
   // Model Settings
   const [scriptModel, setScriptModel] = useState('gemini-3-flash-preview');
@@ -142,9 +159,42 @@ export function WorkflowApp() {
 
   const downloadImage = (base64: string, index: number) => {
     const link = document.createElement('a');
-    link.href = `data:image/png;base64,${base64}`;
-    link.download = `heartlines-scene-${index+1}.png`;
+    link.href = base64; // The string already includes the data URL prefix: data:image/jpeg;base64,...
+    link.download = `heartlines-scene-${index+1}.jpg`;
     link.click();
+  };
+
+  const handleDownloadAllZip = async () => {
+    const zip = new JSZip();
+    
+    // Add images
+    scenes.forEach((scene, i) => {
+      if (scene.image) {
+        // Strip data prefix (e.g. data:image/jpeg;base64,) from base64 string
+        const base64Data = scene.image.split(',')[1];
+        if (base64Data) {
+          zip.file(`scene-${i + 1}.jpg`, base64Data, { base64: true });
+        }
+      }
+    });
+
+    // Add audio if available
+    if (fullAudioPcm) {
+      try {
+        const wavBlob = pcmToWav(fullAudioPcm);
+        zip.file("narration.wav", wavBlob);
+      } catch (err) {
+        console.error("Failed to add WAV to zip", err);
+      }
+    }
+
+    try {
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, "heartlines-production.zip");
+    } catch (err) {
+      console.error("Failed to generate zip", err);
+      alert("Failed to generate zip archive.");
+    }
   };
 
   const handleScenePhraseChange = (index: number, newPhrase: string) => {
@@ -634,9 +684,18 @@ export function WorkflowApp() {
                   <h2 className="text-3xl font-sans font-bold text-[#1A1A1A]">Media Library</h2>
                   <p className="text-[#A8A196] text-sm mt-1">All assets generated for this production</p>
                 </div>
-                <button onClick={() => setIsAssetsModalOpen(false)} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors">
-                  <X className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={handleDownloadAllZip}
+                    className="flex items-center gap-2 bg-[#1A1A1A] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-black transition-colors"
+                  >
+                    <Archive className="w-4 h-4" />
+                    Download All (ZIP)
+                  </button>
+                  <button onClick={() => setIsAssetsModalOpen(false)} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-12 pr-2">
@@ -684,23 +743,25 @@ export function WorkflowApp() {
                        <h4 className="font-bold text-[#1A1A1A]">Full Narration Stream (PCM)</h4>
                        <p className="text-sm text-[#7A7570] mt-1">High-fidelity voice synthesis using {selectedVoice}</p>
                     </div>
-                    {fullAudioPcm ? (
-                       <button 
-                        onClick={() => {
-                          const blob = new Blob([new Uint8Array(atob(fullAudioPcm).split("").map(c => c.charCodeAt(0)))], { type: 'audio/pcm' });
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = "heartlines-narration.pcm";
-                          link.click();
-                        }}
-                        className="bg-[#1A1A1A] text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide hover:bg-black transition-colors"
-                      >
-                        Download Audio
-                      </button>
+                    {wavUrl ? (
+                      <div className="flex flex-col items-center md:items-end gap-3 w-full md:w-auto">
+                        <audio src={wavUrl} controls className="h-10 w-full max-w-[200px]" />
+                        <button 
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = wavUrl;
+                            link.download = "heartlines-narration.wav";
+                            link.click();
+                          }}
+                          className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1A1A1A] hover:text-[#C5A880] transition-colors"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download WAV
+                        </button>
+                      </div>
                     ) : (
                       <div className="px-8 py-4 bg-[#F5F2EE] text-[#A8A196] rounded-full text-sm font-bold animate-pulse">
-                        Wating for completion...
+                        Waiting for completion...
                       </div>
                     )}
                   </div>
