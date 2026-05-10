@@ -123,7 +123,7 @@ export async function exportVideoMediaRecorder(
       
       const audio = new Audio();
       audio.src = wavUrl;
-      audio.crossOrigin = 'anonymous';
+      // Removed crossOrigin for blob URLs, as it can cause loading failures
 
       await new Promise<void>((res, rej) => {
         const timeout = setTimeout(() => {
@@ -132,16 +132,19 @@ export async function exportVideoMediaRecorder(
         }, 15000);
 
         audio.onloadedmetadata = () => {
+          console.log('[MediaRecorder] Audio loaded metadata, readyState:', audio.readyState);
           if (audio.readyState >= 2) {
             clearTimeout(timeout);
             res();
           }
         };
         audio.oncanplaythrough = () => {
+          console.log('[MediaRecorder] Audio can play through');
           clearTimeout(timeout);
           res();
         };
-        audio.onerror = () => {
+        audio.onerror = (e) => {
+          console.error('[MediaRecorder] Audio error:', e);
           clearTimeout(timeout);
           rej(new Error("Failed to load audio for export"));
         };
