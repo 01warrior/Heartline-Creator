@@ -739,13 +739,13 @@ export function WorkflowApp() {
                     <div className="w-16 h-16 bg-[#F5F2EE] rounded-full flex items-center justify-center flex-shrink-0">
                       <Music className="w-8 h-8 text-[#C5A880]" />
                     </div>
-                    <div className="flex-1 text-center md:text-left">
+                    <div className="flex-1 text-center md:text-left pointer-events-none md:pointer-events-auto">
                        <h4 className="font-bold text-[#1A1A1A]">Full Narration Stream (PCM)</h4>
                        <p className="text-sm text-[#7A7570] mt-1">High-fidelity voice synthesis using {selectedVoice}</p>
                     </div>
                     {wavUrl ? (
-                      <div className="flex flex-col items-center md:items-end gap-3 w-full md:w-auto">
-                        <audio src={wavUrl} controls className="h-10 w-full max-w-[200px]" />
+                      <div className="flex flex-col items-center md:items-end gap-3 w-full md:w-auto relative z-50">
+                        <audio src={wavUrl} controls className="h-12 w-full min-w-[250px]" />
                         <button 
                           onClick={() => {
                             const link = document.createElement('a');
