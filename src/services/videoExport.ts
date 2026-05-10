@@ -88,15 +88,15 @@ export async function exportVideoFast(
       };
 
       let exportFinished = false;
+      let lastProgressUpdate = 0;
       
       const renderFrame = () => {
         if (exportFinished) return;
 
-        // Master clock is the audio position
+        // Use audio.currentTime as the master clock for sync
         const elapsed = audio.currentTime;
         
-        // Force rendering at least the first frame even if audio hasn't started
-        // Also check for end of audio (with a small safety buffer)
+        // Final transition check
         if (audio.ended || (elapsed >= audioDuration - 0.05 && elapsed > 0)) {
           console.log('[MediaRecorder] Export reached end of audio.');
           exportFinished = true;
@@ -118,7 +118,7 @@ export async function exportVideoFast(
         
         // Image Animation (Smooth Zoom)
         const baseScale = Math.max(canvas.width / img.width, canvas.height / img.height);
-        const currentScale = baseScale * (1 + sceneProgress * 0.12); // Slightly more zoom for visual feedback
+        const currentScale = baseScale * (1 + sceneProgress * 0.12);
         
         const scaledWidth = img.width * currentScale;
         const scaledHeight = img.height * currentScale;
@@ -141,9 +141,9 @@ export async function exportVideoFast(
 
         // 2. Draw Text (Fade In + Slide Up)
         ctx.save();
-        const textFadeIn = Math.min(1, sceneElapsed / 0.6); // 0.6s fade for elegance
-        const slideUp = (1 - Math.pow(1 - textFadeIn, 3)); // Cubic ease out
-        const yOffset = (1 - slideUp) * 40; // 40px slide
+        const textFadeIn = Math.min(1, sceneElapsed / 0.6);
+        const slideUp = (1 - Math.pow(1 - textFadeIn, 3));
+        const yOffset = (1 - slideUp) * 40;
 
         ctx.globalAlpha = textFadeIn;
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
@@ -180,12 +180,18 @@ export async function exportVideoFast(
         }
         ctx.restore();
         
-        onProgress?.((elapsed / audioDuration) * 100);
+        // Throttled progress update to save CPU for the encoder
+        const now = performance.now();
+        if (now - lastProgressUpdate > 200) {
+          onProgress?.((elapsed / audioDuration) * 100);
+          lastProgressUpdate = now;
+        }
+        
         requestAnimationFrame(renderFrame);
       };
 
-      // Start recording and audio playback
-      recorder.start();
+      // Start recording with a timeslice to flush data regularly
+      recorder.start(1000);
       audio.play().catch(e => {
         console.error('Audio play failed:', e);
         reject(e);
