@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, audioDataToBlob } from '../services/gemini';
 import { exportVideo, exportVideoFast } from '../services/videoExport';
 import { ApiKeyInput } from './ApiKeyInput';
-import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube, ChevronDown } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -12,6 +12,68 @@ type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
 interface Scene {
   phrase: string;
   image?: string;
+}
+
+function CustomSelect({ 
+  label, 
+  value, 
+  options, 
+  onChange 
+}: { 
+  label: string, 
+  value: string, 
+  options: { value: string, label: string, description?: string }[], 
+  onChange: (val: string) => void 
+}) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const selectedOption = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div className="space-y-3 relative">
+      <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196]">{label}</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-white border border-[#E5E1DA] p-4 rounded-2xl text-left flex items-center justify-between hover:border-[#C5A880] transition-all shadow-sm group"
+      >
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-[#1A1A1A]">{selectedOption.label}</span>
+          {selectedOption.description && (
+            <span className="text-[10px] text-[#A8A196] leading-tight mt-0.5">{selectedOption.description}</span>
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 text-[#A8A196] group-hover:text-[#C5A880] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setIsOpen(false)} />
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E5E1DA] rounded-2xl shadow-2xl z-[70] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="max-h-64 overflow-y-auto">
+              {options.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left p-4 hover:bg-[#FAF9F7] transition-colors border-b border-[#F5F2EE] last:border-0 flex flex-col ${value === option.value ? 'bg-[#C5A880]/5' : ''}`}
+                >
+                  <span className={`text-sm font-bold ${value === option.value ? 'text-[#C5A880]' : 'text-[#1A1A1A]'}`}>
+                    {option.label}
+                  </span>
+                  {option.description && (
+                    <span className="text-[10px] text-[#A8A196] leading-tight mt-0.5">{option.description}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function WorkflowApp() {
@@ -584,61 +646,48 @@ export function WorkflowApp() {
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-3">Generation Model (Text)</label>
-                  <select 
-                    value={scriptModel} 
-                    onChange={e => setScriptModel(e.target.value)}
-                    className="w-full bg-white border border-[#E5E1DA] p-4 rounded-xl text-sm focus:outline-none focus:border-[#C5A880] appearance-none"
-                  >
-                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Ultra Fast)</option>
-                    <option value="gemini-3-flash-preview">Gemini 3 Flash (Fast)</option>
-                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Advanced)</option>
-                    <option value="gemini-2.5-flash-preview">Gemini 2.5 Flash</option>
-                  </select>
-                </div>
+                <CustomSelect 
+                  label="Modèle de Génération (Texte)"
+                  value={scriptModel}
+                  onChange={setScriptModel}
+                  options={[
+                    { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', description: 'Vitesse Ultra-rapide - Idéal pour des brouillons instantanés.' },
+                    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', description: 'Équilibre Performance - Le choix standard recommandé.' },
+                    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', description: 'Intelligence Avancée - Poésie complexe et nuances profondes.' },
+                    { value: 'gemini-2.5-flash-preview', label: 'Gemini 2.5 Flash', description: 'Modèle Hérité - Stable et éprouvé.' }
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-3">Visual Model (Image)</label>
-                  <select 
-                    value={imageModel} 
-                    onChange={e => setImageModel(e.target.value)}
-                    className="w-full bg-white border border-[#E5E1DA] p-4 rounded-xl text-sm focus:outline-none focus:border-[#C5A880] appearance-none"
-                  >
-                    <option value="gemini-2.5-flash-image">Gemini 2.5 Flash Image (Nano Banana)</option>
-                    <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image (High Quality)</option>
-                  </select>
-                </div>
+                <CustomSelect 
+                  label="Modèle Visuel (Image)"
+                  value={imageModel}
+                  onChange={setImageModel}
+                  options={[
+                    { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image', description: 'Nano Banana - Styles abstraits et générations rapides.' },
+                    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image', description: 'Haute Qualité - Textures photoréalistes et profondeur.' }
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-3">Speech Model (TTS)</label>
-                  <select 
-                    value={ttsModel} 
-                    onChange={e => setTtsModel(e.target.value)}
-                    className="w-full bg-white border border-[#E5E1DA] p-4 rounded-xl text-sm focus:outline-none focus:border-[#C5A880] appearance-none"
-                  >
-                    <option value="gemini-3.1-flash-tts-preview">Gemini 3.1 Flash TTS (Recommended)</option>
-                    <option value="gemini-3.1-pro-tts-preview">Gemini 3.1 Pro TTS</option>
-                    <option value="gemini-2.5-flash-preview-tts">Gemini 2.5 Flash TTS Preview</option>
-                    <option value="gemini-2.5-pro-preview-tts">Gemini 2.5 Pro TTS Preview</option>
-                  </select>
-                </div>
+                <CustomSelect 
+                  label="Modèle Vocal (TTS)"
+                  value={ttsModel}
+                  onChange={setTtsModel}
+                  options={[
+                    { value: 'gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS', description: 'Recommandé - Voix naturelles et expressives.' },
+                    { value: 'gemini-3.1-pro-tts-preview', label: 'Gemini 3.1 Pro TTS', description: 'Qualité Studio - Clarté cristalline.' }
+                  ]}
+                />
 
-                <div>
-                  <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-3">AI Voice (Tone)</label>
-                  <select 
-                    value={selectedVoice} 
-                    onChange={e => setSelectedVoice(e.target.value)}
-                    className="w-full bg-white border border-[#E5E1DA] p-4 rounded-xl text-sm focus:outline-none focus:border-[#C5A880] appearance-none"
-                  >
-                    {AVAILABLE_VOICES.map(voice => (
-                      <option key={voice} value={voice}>{voice}</option>
-                    ))}
-                  </select>
-                  <p className="mt-2 text-[10px] text-[#A8A196] leading-relaxed italic">
-                    Available: Puck (M), Charon (M), Kore (F), Fenrir (M), Aoede (F).
-                  </p>
-                </div>
+                <CustomSelect 
+                  label="Voix de l'IA (Ton)"
+                  value={selectedVoice}
+                  onChange={setSelectedVoice}
+                  options={AVAILABLE_VOICES.map(voice => ({
+                    value: voice,
+                    label: voice,
+                    description: voice === 'Kore' || voice === 'Aoede' ? 'Féminin - Douce et mélodique' : 'Masculin - Profonde et posée'
+                  }))}
+                />
               </div>
 
               <button 
