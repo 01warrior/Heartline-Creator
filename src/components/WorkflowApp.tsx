@@ -207,36 +207,21 @@ export function WorkflowApp() {
   };
 
   const playSequence = async () => {
-    if (isPlaying || !wavUrl) return;
+    if (isPlaying || !fullAudio) return;
     setIsPlaying(true);
     setCurrentSceneIndex(0);
 
-    const audio = new Audio(wavUrl);
-    
-    audio.onended = () => {
-      setIsPlaying(false);
-    };
-    
-    audio.onerror = (e) => {
-      console.error("Audio playback error", e);
-      setIsPlaying(false);
-    };
-    
-    audio.ontimeupdate = () => {
-      if (audio.duration) {
-        const percent = (audio.currentTime / audio.duration) * 100;
-        const sceneIndex = Math.min(
-            Math.floor((percent / 100) * scenes.length),
-            scenes.length - 1
-        );
-        setCurrentSceneIndex(sceneIndex);
-      }
-    };
-
     try {
-        await audio.play();
+        await playPcmAudio(fullAudio.data, (percent) => {
+            const sceneIndex = Math.min(
+                Math.floor((percent / 100) * scenes.length),
+                scenes.length - 1
+            );
+            setCurrentSceneIndex(sceneIndex);
+        });
     } catch(e) {
         console.error("Playback error", e);
+    } finally {
         setIsPlaying(false);
     }
   };
@@ -763,11 +748,10 @@ export function WorkflowApp() {
                     {wavUrl ? (
                       <div className="flex flex-col items-center flex-wrap md:items-end gap-3 w-full md:w-auto z-50 shrink-0 pointer-events-auto">
                         <button 
-                          onClick={() => {
-                            if (!wavUrl) return;
+                          onClick={async () => {
+                            if (!fullAudio) return;
                             try {
-                               const a = new Audio(wavUrl);
-                               a.play();
+                               await playPcmAudio(fullAudio.data);
                             } catch(e) {
                                console.error(e);
                             }
