@@ -92,6 +92,7 @@ export function WorkflowApp() {
       setIsGeneratingPoem(true);
       const phrases = await generatePoem(apiKey, topic, scriptModel);
       setScenes(phrases.map(phrase => ({ phrase })));
+      setFullAudio(null);
       setRightPanelState('IDLE');
     } catch (err) {
       setError(parseGeminiError(err));
@@ -141,12 +142,14 @@ export function WorkflowApp() {
       }
 
       // 2. Generate Full Audio
-      try {
-        const fullText = currentScenes.map(s => s.phrase).join(". ");
-        const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
-        setFullAudio(audio);
-      } catch (e: any) {
-        setError(parseGeminiError(e));
+      if (!fullAudio) {
+        try {
+          const fullText = currentScenes.map(s => s.phrase).join(". ");
+          const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
+          setFullAudio(audio);
+        } catch (e: any) {
+          setError(parseGeminiError(e));
+        }
       }
       
       completedCount++;
@@ -204,21 +207,36 @@ export function WorkflowApp() {
   };
 
   const playSequence = async () => {
-    if (isPlaying || !fullAudio) return;
+    if (isPlaying || !wavUrl) return;
     setIsPlaying(true);
     setCurrentSceneIndex(0);
 
+    const audio = new Audio(wavUrl);
+    
+    audio.onended = () => {
+      setIsPlaying(false);
+    };
+    
+    audio.onerror = (e) => {
+      console.error("Audio playback error", e);
+      setIsPlaying(false);
+    };
+    
+    audio.ontimeupdate = () => {
+      if (audio.duration) {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        const sceneIndex = Math.min(
+            Math.floor((percent / 100) * scenes.length),
+            scenes.length - 1
+        );
+        setCurrentSceneIndex(sceneIndex);
+      }
+    };
+
     try {
-        await playPcmAudio(fullAudio.data, (percent) => {
-            const sceneIndex = Math.min(
-                Math.floor((percent / 100) * scenes.length),
-                scenes.length - 1
-            );
-            setCurrentSceneIndex(sceneIndex);
-        });
+        await audio.play();
     } catch(e) {
         console.error("Playback error", e);
-    } finally {
         setIsPlaying(false);
     }
   };
@@ -745,10 +763,11 @@ export function WorkflowApp() {
                     {wavUrl ? (
                       <div className="flex flex-col items-center flex-wrap md:items-end gap-3 w-full md:w-auto z-50 shrink-0 pointer-events-auto">
                         <button 
-                          onClick={async () => {
-                            if (!fullAudio) return;
+                          onClick={() => {
+                            if (!wavUrl) return;
                             try {
-                               await playPcmAudio(fullAudio.data);
+                               const a = new Audio(wavUrl);
+                               a.play();
                             } catch(e) {
                                console.error(e);
                             }

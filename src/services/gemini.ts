@@ -16,7 +16,7 @@ export async function generatePoem(apiKey: string, topic: string, model: string 
     contents: `Write a romantic, emotional, and deep poem about the topic: "${topic}". 
     It should be in the style of highly engaging TikTok/Reels poetry accounts like 'Heartlines', where each line evokes a strong feeling.
     Split the poem into 6-8 distinct phrases (each phrase will be a separate scene).
-    Make each phrase slightly longer and more descriptive (about 12-20 words each) so the narrator has enough substantive, deep text to say at a standard poet's pace.
+    Make each phrase a normal sentence length (about 6-12 words each) to keep it concise and impactful.
     Language: French or English based on the topic.
     The tone must be: romantic, quiet, deep, emotionally resonant.`,
     config: {
@@ -150,6 +150,43 @@ export function audioDataToBlob(base64Data: string, mimeType: string): Blob {
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // If the model actually returned raw PCM, format it to WAV for the browser to play it via <audio> tags
+  if (mimeType.toLowerCase().includes('pcm') || !mimeType || mimeType === 'audio/wav') {
+    const sampleRate = 24000;
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    
+    const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+    const blockAlign = numChannels * (bitsPerSample / 8);
+    
+    const wavHeader = new ArrayBuffer(44);
+    const view = new DataView(wavHeader);
+    
+    const writeString = (view: DataView, offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + bytes.length, true);
+    writeString(view, 8, 'WAVE');
+    
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    
+    writeString(view, 36, 'data');
+    view.setUint32(40, bytes.length, true);
+    
+    return new Blob([wavHeader, bytes], { type: 'audio/wav' });
   }
   
   return new Blob([bytes], { type: mimeType });
