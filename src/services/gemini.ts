@@ -138,7 +138,7 @@ export async function generateFullPoemAudio(apiKey: string, fullText: string, mo
 
   const inlineData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData;
   if (inlineData?.data) {
-    return { data: inlineData.data, mimeType: inlineData.mimeType || 'audio/pcm;rate=24000' };
+    return { data: inlineData.data, mimeType: inlineData.mimeType || 'audio/wav' };
   }
   
   throw new Error("Failed to generate full audio.");
@@ -151,45 +151,7 @@ export function audioDataToBlob(base64Data: string, mimeType: string): Blob {
   for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-
-  // If the model actually returned raw PCM, format it to WAV for the browser to play it via <audio> tags
-  if (mimeType.toLowerCase().includes('pcm')) {
-    const sampleRate = 24000;
-    const numChannels = 1;
-    const bitsPerSample = 16;
-    
-    const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-    const blockAlign = numChannels * (bitsPerSample / 8);
-    
-    const wavHeader = new ArrayBuffer(44);
-    const view = new DataView(wavHeader);
-    
-    const writeString = (view: DataView, offset: number, string: string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    };
-    
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + bytes.length, true);
-    writeString(view, 8, 'WAVE');
-    
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, byteRate, true);
-    view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bitsPerSample, true);
-    
-    writeString(view, 36, 'data');
-    view.setUint32(40, bytes.length, true);
-    
-    return new Blob([wavHeader, bytes], { type: 'audio/wav' });
-  }
-
-  // Otherwise, if it's already an mp3 or wav or ogg etc.
+  
   return new Blob([bytes], { type: mimeType });
 }
 
@@ -203,15 +165,23 @@ export async function playPcmAudio(base64Data: string, onProgress?: (percent: nu
         bytes[i] = binaryString.charCodeAt(i);
       }
       
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      const buffer = new Int16Array(bytes.buffer);
-      const float32Buffer = new Float32Array(buffer.length);
-      for(let i=0; i<buffer.length; i++) {
-        float32Buffer[i] = buffer[i] / 32768.0;
-      }
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      let audioBuffer: AudioBuffer;
       
-      const audioBuffer = audioContext.createBuffer(1, float32Buffer.length, 24000);
-      audioBuffer.copyToChannel(float32Buffer, 0);
+      try {
+        // Try decoding as standard format (WAV, MP3, etc.)
+        audioBuffer = await audioContext.decodeAudioData(bytes.buffer.slice(0));
+      } catch (decodeErr) {
+        // If it fails, assume it's raw 16-bit 24kHz PCM and decode manually
+        const sampleRate = 24000;
+        const pcmBuffer = new Int16Array(bytes.buffer);
+        const float32Buffer = new Float32Array(pcmBuffer.length);
+        for(let i=0; i<pcmBuffer.length; i++) {
+          float32Buffer[i] = pcmBuffer[i] / 32768.0;
+        }
+        audioBuffer = audioContext.createBuffer(1, float32Buffer.length, sampleRate);
+        audioBuffer.copyToChannel(float32Buffer, 0);
+      }
       
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
@@ -230,11 +200,8 @@ export async function playPcmAudio(base64Data: string, onProgress?: (percent: nu
         }
       };
 
-      source.onended = () => {
-        resolve();
-      };
-      
-      source.start();
+      source.onended = () => resolve();
+      source.start(0);
       startTime = audioContext.currentTime;
       updateProgress();
     } catch(e) {
