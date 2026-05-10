@@ -17,46 +17,51 @@ export async function exportVideo(
   });
 
   const baseURL = window.location.origin;
+  console.log('[FFmpeg] Starting export...');
   console.log('[FFmpeg] crossOriginIsolated:', window.crossOriginIsolated);
   console.log('[FFmpeg] SharedArrayBuffer available:', typeof SharedArrayBuffer !== 'undefined');
   
   try {
-    // In 0.12 ESM, passing strings is preferred if headers are correct
+    console.log('[FFmpeg] Loading core...');
     await ffmpeg.load({
       coreURL: `${baseURL}/ffmpeg-core.js`,
       wasmURL: `${baseURL}/ffmpeg-core.wasm`,
     });
-    console.log('[FFmpeg] Successfully loaded with direct URLs');
+    console.log('[FFmpeg] Core loaded successfully');
   } catch (err) {
     console.warn('[FFmpeg] Failed to load with direct URLs, trying fallback...', err);
-    // Fallback using toBlobURL logic
     const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
     const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
     await ffmpeg.load({
       coreURL,
       wasmURL,
     });
-    console.log('[FFmpeg] Successfully loaded with Blob URLs');
+    console.log('[FFmpeg] Loaded with fallback');
   }
 
   // 2. AUDIO
+  console.log('[FFmpeg] Processing audio:', wavUrl);
   const audioDuration = await new Promise<number>((resolve, reject) => {
     const audio = new Audio();
     audio.onloadedmetadata = () => resolve(audio.duration);
     audio.onerror = () => reject(new Error('Impossible de charger le fichier audio'));
     audio.src = wavUrl;
   });
+  console.log('[FFmpeg] Audio duration:', audioDuration);
 
   await ffmpeg.writeFile('audio.wav', await fetchFile(wavUrl));
+  console.log('[FFmpeg] Audio file written');
 
   // 3. IMAGES + liste concat
   const validScenes = scenes.filter(s => !!s.image);
   if (validScenes.length === 0) throw new Error('Aucune image à exporter');
+  console.log('[FFmpeg] Processing', validScenes.length, 'images');
 
   const durationPerScene = audioDuration / validScenes.length;
   let concatList = '';
 
   for (let i = 0; i < validScenes.length; i++) {
+    console.log(`[FFmpeg] Writing image ${i}...`);
     const base64 = validScenes[i].image!.split(',')[1];
     const binary = atob(base64);
     const bytes  = new Uint8Array(binary.length);
@@ -70,8 +75,10 @@ export async function exportVideo(
   // Répéter la dernière image (requis par FFmpeg pour fermer le concat)
   concatList += `file 'img${validScenes.length - 1}.jpg'\n`;
   await ffmpeg.writeFile('list.txt', new TextEncoder().encode(concatList));
+  console.log('[FFmpeg] Concat list written');
 
   // 4. ENCODAGE
+  console.log('[FFmpeg] Starting encoding (this is where progress starts)...');
   await ffmpeg.exec([
     '-f',        'concat',
     '-safe',     '0',
