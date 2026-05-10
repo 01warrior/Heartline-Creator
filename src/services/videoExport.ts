@@ -1,3 +1,5 @@
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { saveAs } from 'file-saver';
 
 export async function exportVideo(
@@ -5,161 +7,80 @@ export async function exportVideo(
   wavUrl: string,
   onProgress?: (progress: number) => void
 ): Promise<void> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      if (onProgress) onProgress(5);
-      
-      const audio = new Audio();
-      audio.src = wavUrl;
-      audio.crossOrigin = 'anonymous';
 
-      await new Promise<void>((res, rej) => {
-        const timeout = setTimeout(() => {
-          if (audio.readyState >= 2) res(); // HAVE_CURRENT_DATA or better
-          else rej(new Error("Audio loading timeout"));
-        }, 15000);
+  // 1. INIT FFMPEG single-thread (fichiers locaux, pas de CORS)
+  const ffmpeg = new FFmpeg();
 
-        audio.onloadedmetadata = () => {
-          if (audio.readyState >= 2) {
-            clearTimeout(timeout);
-            res();
-          }
-        };
-        audio.oncanplaythrough = () => {
-          clearTimeout(timeout);
-          res();
-        };
-        audio.onerror = () => {
-          clearTimeout(timeout);
-          rej(new Error("Failed to load audio for export"));
-        };
-        audio.load();
-      });
-
-      const audioDuration = audio.duration;
-      const width = 1080;
-      const height = 1920;
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d', { alpha: false }); // Better performance
-      if (!ctx) throw new Error("Could not get canvas context");
-
-      // Load all images first
-      if (onProgress) onProgress(10);
-      const loadedImages = await Promise.all(
-        scenes.map(async (scene) => {
-          if (!scene.image) return null;
-          return new Promise<HTMLImageElement | null>((res) => {
-            const img = new Image();
-            img.onload = () => res(img);
-            img.onerror = () => res(null);
-            img.src = scene.image!;
-          });
-        })
-      );
-      if (onProgress) onProgress(20);
-
-      // Setup streams
-      const canvasStream = canvas.captureStream(30); // 30 FPS
-      
-      // We need to capture the audio from the element
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-      const source = audioContext.createMediaElementSource(audio);
-      const dest = audioContext.createMediaStreamDestination();
-      source.connect(dest);
-      source.connect(audioContext.destination); // Also play to speakers so we can hear progress?
-      
-      const combinedStream = new MediaStream([
-        ...canvasStream.getVideoTracks(),
-        ...dest.stream.getAudioTracks()
-      ]);
-
-      const formats = [
-        'video/mp4;codecs=h264',
-        'video/webm;codecs=vp9',
-        'video/webm;codecs=vp8',
-        'video/webm'
-      ];
-      const mimeType = formats.find(f => MediaRecorder.isTypeSupported(f)) || 'video/webm';
-      const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
-
-      const recorder = new MediaRecorder(combinedStream, {
-        mimeType,
-        videoBitsPerSecond: 8000000 // 8Mbps for high quality
-      });
-
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `heartlines-production.${extension}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        resolve();
-      };
-
-      recorder.onerror = (e) => reject(e);
-
-      // Animation Loop
-      const numScenes = scenes.length;
-      const durationPerScene = audioDuration / numScenes;
-
-      const draw = () => {
-        const currentTime = audio.currentTime;
-        const progress = (currentTime / audioDuration) * 100;
-        if (onProgress) onProgress(20 + (progress * 0.8));
-
-        const sceneIndex = Math.min(
-          Math.floor(currentTime / durationPerScene),
-          numScenes - 1
-        );
-
-        const img = loadedImages[sceneIndex];
-
-        // Background
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
-
-        if (img) {
-          // Scale and crop (Cover)
-          const scale = Math.max(width / img.width, height / img.height);
-          const w = img.width * scale;
-          const h = img.height * scale;
-          const x = (width - w) / 2;
-          const y = (height - h) / 2;
-          ctx.drawImage(img, x, y, w, h);
-        }
-
-        if (currentTime < audioDuration && !audio.paused) {
-          requestAnimationFrame(draw);
-        }
-      };
-
-      // Start recording
-      recorder.start();
-      await audio.play();
-      draw();
-
-      audio.onended = () => {
-        recorder.stop();
-        audioContext.close();
-      };
-
-    } catch (err) {
-      reject(err);
-    }
+  ffmpeg.on('log', ({ message }) => console.log('[FFmpeg]', message));
+  ffmpeg.on('progress', ({ progress }) => {
+    onProgress?.(Math.round(progress * 100));
   });
+
+  await ffmpeg.load({
+    coreURL: await toBlobURL('/ffmpeg-core.js',   'text/javascript'),
+    wasmURL: await toBlobURL('/ffmpeg-core.wasm', 'application/wasm'),
+    // Pas de workerURL → single-thread, pas de SharedArrayBuffer requis
+  });
+
+  // 2. AUDIO
+  const audioDuration = await new Promise<number>((resolve, reject) => {
+    const audio = new Audio();
+    audio.onloadedmetadata = () => resolve(audio.duration);
+    audio.onerror = () => reject(new Error('Impossible de charger le fichier audio'));
+    audio.src = wavUrl;
+  });
+
+  await ffmpeg.writeFile('audio.wav', await fetchFile(wavUrl));
+
+  // 3. IMAGES + liste concat
+  const validScenes = scenes.filter(s => !!s.image);
+  if (validScenes.length === 0) throw new Error('Aucune image à exporter');
+
+  const durationPerScene = audioDuration / validScenes.length;
+  let concatList = '';
+
+  for (let i = 0; i < validScenes.length; i++) {
+    const base64 = validScenes[i].image!.split(',')[1];
+    const binary = atob(base64);
+    const bytes  = new Uint8Array(binary.length);
+    for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+
+    const fileName = `img${i}.jpg`;
+    await ffmpeg.writeFile(fileName, bytes);
+    concatList += `file '${fileName}'\nduration ${durationPerScene.toFixed(3)}\n`;
+  }
+
+  // Répéter la dernière image (requis par FFmpeg pour fermer le concat)
+  concatList += `file 'img${validScenes.length - 1}.jpg'\n`;
+  await ffmpeg.writeFile('list.txt', new TextEncoder().encode(concatList));
+
+  // 4. ENCODAGE
+  await ffmpeg.exec([
+    '-f',        'concat',
+    '-safe',     '0',
+    '-i',        'list.txt',
+    '-i',        'audio.wav',
+    '-c:v',      'libx264',
+    '-preset',   'fast',
+    '-crf',      '20',
+    '-r',        '30',
+    '-pix_fmt',  'yuv420p',
+    '-vf',       'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920',
+    '-c:a',      'aac',
+    '-b:a',      '192k',
+    '-map',      '0:v:0',
+    '-map',      '1:a:0',
+    '-shortest',
+    '-movflags', '+faststart',
+    'output.mp4',
+  ]);
+
+  // 5. EXPORT
+  const data = await ffmpeg.readFile('output.mp4');
+  const blob = new Blob(
+    [data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer)],
+    { type: 'video/mp4' }
+  );
+
+  saveAs(blob, 'video-production.mp4');
 }
