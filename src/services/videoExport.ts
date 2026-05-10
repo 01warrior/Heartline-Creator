@@ -9,9 +9,30 @@ export async function exportVideo(
     try {
       if (onProgress) onProgress(5);
       
-      const audio = new Audio(wavUrl);
-      await new Promise((res) => {
-        audio.oncanplaythrough = res;
+      const audio = new Audio();
+      audio.src = wavUrl;
+      audio.crossOrigin = 'anonymous';
+
+      await new Promise<void>((res, rej) => {
+        const timeout = setTimeout(() => {
+          if (audio.readyState >= 2) res(); // HAVE_CURRENT_DATA or better
+          else rej(new Error("Audio loading timeout"));
+        }, 15000);
+
+        audio.onloadedmetadata = () => {
+          if (audio.readyState >= 2) {
+            clearTimeout(timeout);
+            res();
+          }
+        };
+        audio.oncanplaythrough = () => {
+          clearTimeout(timeout);
+          res();
+        };
+        audio.onerror = () => {
+          clearTimeout(timeout);
+          rej(new Error("Failed to load audio for export"));
+        };
         audio.load();
       });
 
@@ -22,7 +43,7 @@ export async function exportVideo(
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { alpha: false }); // Better performance
       if (!ctx) throw new Error("Could not get canvas context");
 
       // Load all images first
@@ -45,6 +66,9 @@ export async function exportVideo(
       
       // We need to capture the audio from the element
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
       const source = audioContext.createMediaElementSource(audio);
       const dest = audioContext.createMediaStreamDestination();
       source.connect(dest);
