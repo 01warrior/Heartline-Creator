@@ -16,11 +16,22 @@ export async function exportVideo(
     onProgress?.(Math.round(progress * 100));
   });
 
-  await ffmpeg.load({
-    coreURL: await toBlobURL('/ffmpeg-core.js',   'text/javascript'),
-    wasmURL: await toBlobURL('/ffmpeg-core.wasm', 'application/wasm'),
-    // Pas de workerURL → single-thread, pas de SharedArrayBuffer requis
-  });
+  const baseURL = window.location.origin;
+  const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+  const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+  
+  console.log('[FFmpeg] Attempting to load from:', { coreURL, wasmURL });
+
+  try {
+    await ffmpeg.load({
+      coreURL,
+      wasmURL,
+    });
+    console.log('[FFmpeg] Successfully loaded');
+  } catch (err) {
+    console.error('[FFmpeg] Failed to load core:', err);
+    throw err;
+  }
 
   // 2. AUDIO
   const audioDuration = await new Promise<number>((resolve, reject) => {
