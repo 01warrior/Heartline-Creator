@@ -17,20 +17,26 @@ export async function exportVideo(
   });
 
   const baseURL = window.location.origin;
-  const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-  const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+  console.log('[FFmpeg] crossOriginIsolated:', window.crossOriginIsolated);
+  console.log('[FFmpeg] SharedArrayBuffer available:', typeof SharedArrayBuffer !== 'undefined');
   
-  console.log('[FFmpeg] Attempting to load from:', { coreURL, wasmURL });
-
   try {
+    // In 0.12 ESM, passing strings is preferred if headers are correct
+    await ffmpeg.load({
+      coreURL: `${baseURL}/ffmpeg-core.js`,
+      wasmURL: `${baseURL}/ffmpeg-core.wasm`,
+    });
+    console.log('[FFmpeg] Successfully loaded with direct URLs');
+  } catch (err) {
+    console.warn('[FFmpeg] Failed to load with direct URLs, trying fallback...', err);
+    // Fallback using toBlobURL logic
+    const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+    const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
     await ffmpeg.load({
       coreURL,
       wasmURL,
     });
-    console.log('[FFmpeg] Successfully loaded');
-  } catch (err) {
-    console.error('[FFmpeg] Failed to load core:', err);
-    throw err;
+    console.log('[FFmpeg] Successfully loaded with Blob URLs');
   }
 
   // 2. AUDIO
