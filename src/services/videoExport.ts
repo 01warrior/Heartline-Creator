@@ -102,20 +102,75 @@ export async function exportVideoFast(
           return;
         }
 
-        const targetScene = Math.floor(elapsed / durationPerScene);
+        const targetSceneIndex = Math.min(Math.max(0, Math.floor(elapsed / durationPerScene)), loadedImages.length - 1);
+        const sceneProgress = (elapsed % durationPerScene) / durationPerScene;
         
-        if (targetScene !== currentScene || elapsed === 0) {
-          ctx.fillStyle = 'black';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          const img = loadedImages[Math.min(targetScene, loadedImages.length - 1)];
-          
-          const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
-          const x = (canvas.width / 2) - (img.width / 2) * scale;
-          const y = (canvas.height / 2) - (img.height / 2) * scale;
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-          
-          currentScene = targetScene;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const img = loadedImages[targetSceneIndex];
+        const scene = validScenes[targetSceneIndex];
+        
+        // Image Animation (Subtle Zoom)
+        const baseScale = Math.max(canvas.width / img.width, canvas.height / img.height);
+        const currentScale = baseScale * (1 + sceneProgress * 0.05); // 5% zoom over scene
+        
+        const scaledWidth = img.width * currentScale;
+        const scaledHeight = img.height * currentScale;
+        const x = (canvas.width / 2) - (scaledWidth / 2);
+        const y = (canvas.height / 2) - (scaledHeight / 2);
+        
+        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+        // Subtitles Overlay
+        // 1. Bottom Dark Gradient
+        const gradientAlpha = Math.min(1, (elapsed % durationPerScene) / 0.5);
+        ctx.save();
+        ctx.globalAlpha = gradientAlpha;
+        const gradient = ctx.createLinearGradient(0, canvas.height * 0.7, 0, canvas.height);
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.8)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
+        ctx.restore();
+
+        // 2. Draw Text (Fade In)
+        ctx.save();
+        const textFadeIn = Math.min(1, (elapsed % durationPerScene) / 0.4); // 0.4s fade
+        ctx.globalAlpha = textFadeIn;
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.font = 'bold 64px Inter, system-ui, sans-serif';
+        
+        const padding = 80;
+        const maxWidth = canvas.width - (padding * 2);
+        const words = scene.phrase.split(' ');
+        let line = '';
+        const lines = [];
+        
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + ' ';
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && n > 0) {
+            lines.push(line);
+            line = words[n] + ' ';
+          } else {
+            line = testLine;
+          }
         }
+        lines.push(line);
+
+        const lineHeight = 80;
+        let currentY = canvas.height - 200; 
+        
+        for (let i = lines.length - 1; i >= 0; i--) {
+          ctx.fillText(lines[i].trim(), padding, currentY);
+          currentY -= lineHeight;
+        }
+        ctx.restore();
+        
+        currentScene = targetSceneIndex;
         
         onProgress?.((elapsed / audioDuration) * 100);
         requestAnimationFrame(renderFrame);
