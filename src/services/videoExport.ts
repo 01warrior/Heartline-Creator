@@ -22,21 +22,34 @@ export async function exportVideo(
   console.log('[FFmpeg] SharedArrayBuffer available:', typeof SharedArrayBuffer !== 'undefined');
   
   try {
-    console.log('[FFmpeg] Loading core...');
-    await ffmpeg.load({
-      coreURL: `${baseURL}/ffmpeg-core.js`,
-      wasmURL: `${baseURL}/ffmpeg-core.wasm`,
-    });
-    console.log('[FFmpeg] Core loaded successfully');
-  } catch (err) {
-    console.warn('[FFmpeg] Failed to load with direct URLs, trying fallback...', err);
+    console.log('[FFmpeg] Initializing...');
+    const baseURL = window.location.origin;
+    
+    console.log('[FFmpeg] Fetching core and wasm as blobs...');
+    
+    // Explicitly check if files are fetchable to pinpoint network issues
+    try {
+      const resp = await fetch(`${baseURL}/ffmpeg-core.js`);
+      console.log('[FFmpeg] ffmpeg-core.js fetch status:', resp.status);
+      if (!resp.ok) throw new Error(`Could not fetch ffmpeg-core.js: ${resp.status}`);
+    } catch (e) {
+      console.error('[FFmpeg] Failed to fetch ffmpeg-core.js:', e);
+    }
+
     const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+    console.log('[FFmpeg] coreURL created');
     const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+    console.log('[FFmpeg] wasmURL created');
+    
+    console.log('[FFmpeg] Loading ffmpeg instance...');
     await ffmpeg.load({
       coreURL,
       wasmURL,
     });
-    console.log('[FFmpeg] Loaded with fallback');
+    console.log('[FFmpeg] FFmpeg loaded successfully');
+  } catch (err) {
+    console.error('[FFmpeg] Critical error during load:', err);
+    throw err;
   }
 
   // 2. AUDIO
