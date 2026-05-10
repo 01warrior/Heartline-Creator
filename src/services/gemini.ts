@@ -175,7 +175,7 @@ export function audioDataToBlob(base64Data: string, mimeType: string): Blob {
 
   // If the model actually returned raw PCM, format it to WAV for the browser to play it via <audio> tags
   // AND only wrap it if we didn't identify it as another format!
-  if (mimeType.toLowerCase().includes('pcm') || !mimeType) {
+  if (mimeType.toLowerCase().includes('pcm') || mimeType.toLowerCase().includes('l16') || mimeType === 'audio/wav' || !mimeType) {
     console.log('[Audio] Wrapping raw PCM in WAV header');
     const sampleRate = 24000;
     const numChannels = 1;
