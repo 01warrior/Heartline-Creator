@@ -34,7 +34,9 @@ export async function exportVideoFast(
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1920;
-      const ctx = canvas.getContext('2d')!;
+      const ctx = canvas.getContext('2d', { alpha: false })!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
       const loadedImages = await Promise.all(validScenes.map(async scene => {
          const img = new Image();
@@ -68,7 +70,10 @@ export async function exportVideoFast(
 
       const chunks: BlobPart[] = [];
       const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm;codecs=vp9,opus';
-      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+      const recorder = new MediaRecorder(stream, { 
+        mimeType, 
+        videoBitsPerSecond: 20000000 // 20 Mbps for high quality
+      });
 
       recorder.ondataavailable = e => {
         if (e.data.size > 0) chunks.push(e.data);
