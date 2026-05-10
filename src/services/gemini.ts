@@ -152,6 +152,11 @@ export function audioDataToBlob(base64Data: string, mimeType: string): Blob {
     bytes[i] = binaryString.charCodeAt(i);
   }
 
+  // If the data already has a RIFF header, it is already a valid WAV file.
+  if (binaryString.startsWith('RIFF')) {
+    return new Blob([bytes], { type: 'audio/wav' });
+  }
+
   // If the model actually returned raw PCM, format it to WAV for the browser to play it via <audio> tags
   if (mimeType.toLowerCase().includes('pcm') || !mimeType || mimeType === 'audio/wav') {
     const sampleRate = 24000;
