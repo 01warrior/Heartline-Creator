@@ -2,11 +2,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { saveAs } from 'file-saver';
 
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
-import { saveAs } from 'file-saver';
-
-async function exportVideoFFmpeg(
+export async function exportVideoFFmpeg(
   scenes: { phrase: string; image?: string }[],
   wavUrl: string,
   onProgress?: (progress: number) => void
@@ -115,7 +111,7 @@ async function exportVideoFFmpeg(
   saveAs(blob, 'video-production.mp4');
 }
 
-async function exportVideoMediaRecorder(
+export async function exportVideoMediaRecorder(
   scenes: { phrase: string; image?: string }[],
   wavUrl: string,
   onProgress?: (progress: number) => void

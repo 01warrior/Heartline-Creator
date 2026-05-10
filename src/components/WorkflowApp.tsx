@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, audioDataToBlob } from '../services/gemini';
-import { exportVideo } from '../services/videoExport';
+import { exportVideoFFmpeg, exportVideoMediaRecorder } from '../services/videoExport';
 import { ApiKeyInput } from './ApiKeyInput';
 import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video } from 'lucide-react';
 import JSZip from 'jszip';
@@ -34,6 +34,7 @@ export function WorkflowApp() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [wavUrl, setWavUrl] = useState<string | null>(null);
   const [isExportingVideo, setIsExportingVideo] = useState(false);
+  const [isExportingMediaRecorder, setIsExportingMediaRecorder] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
   useEffect(() => {
@@ -209,14 +210,31 @@ export function WorkflowApp() {
     setIsExportingVideo(true);
     setExportProgress(0);
     try {
-      await exportVideo(scenes, wavUrl, (progress) => {
+      await exportVideoFFmpeg(scenes, wavUrl, (progress) => {
         setExportProgress(progress);
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to export video", err);
-      alert("Failed to export video.");
+      // Removed alert, fallbacks are manual now
     } finally {
       setIsExportingVideo(false);
+      setExportProgress(0);
+    }
+  };
+
+  const handleExportMediaRecorder = async () => {
+    if (!wavUrl || scenes.length === 0) return;
+    setIsExportingMediaRecorder(true);
+    setExportProgress(0);
+    try {
+      await exportVideoMediaRecorder(scenes, wavUrl, (progress) => {
+        setExportProgress(progress);
+      });
+    } catch (err: any) {
+      console.error("Failed to export video via MediaRecorder", err);
+      alert("Failed to export video via MediaRecorder.");
+    } finally {
+      setIsExportingMediaRecorder(false);
       setExportProgress(0);
     }
   };
@@ -710,21 +728,29 @@ export function WorkflowApp() {
                 <div className="flex items-center gap-4">
                   <button 
                     onClick={handleExportMP4}
-                    disabled={isExportingVideo}
+                    disabled={isExportingVideo || isExportingMediaRecorder}
                     className="flex items-center gap-2 bg-[#C5A880] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-[#B3966D] transition-colors disabled:opacity-75 disabled:cursor-wait"
                   >
                     {isExportingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-                    {isExportingVideo ? `Exporting (${Math.round(exportProgress)}%) ...` : 'Export Video'}
+                    {isExportingVideo ? `Exporting FFmpeg (${Math.round(exportProgress)}%) ...` : 'Export Video (HQ)'}
+                  </button>
+                  <button 
+                    onClick={handleExportMediaRecorder}
+                    disabled={isExportingVideo || isExportingMediaRecorder}
+                    className="flex items-center gap-2 bg-[#8C8273] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-[#7a7164] transition-colors disabled:opacity-75 disabled:cursor-wait"
+                  >
+                    {isExportingMediaRecorder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
+                    {isExportingMediaRecorder ? `Exporting Fallback (${Math.round(exportProgress)}%) ...` : 'Export Video (Fast)'}
                   </button>
                   <button 
                     onClick={handleDownloadAllZip}
-                    disabled={isExportingVideo}
+                    disabled={isExportingVideo || isExportingMediaRecorder}
                     className="flex items-center gap-2 bg-[#1A1A1A] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-black transition-colors disabled:opacity-50"
                   >
                     <Archive className="w-4 h-4" />
                     Download All (ZIP)
                   </button>
-                  <button onClick={() => setIsAssetsModalOpen(false)} disabled={isExportingVideo} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors disabled:opacity-50">
+                  <button onClick={() => setIsAssetsModalOpen(false)} disabled={isExportingVideo || isExportingMediaRecorder} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors disabled:opacity-50">
                     <X className="w-6 h-6" />
                   </button>
                 </div>
