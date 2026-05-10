@@ -26,6 +26,7 @@ export function WorkflowApp() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
   const [rightPanelState, setRightPanelState] = useState<'IDLE' | 'GENERATING' | 'PLAYER'>('IDLE');
+  const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Model Settings
@@ -91,12 +92,10 @@ export function WorkflowApp() {
     const totalTasks = scenes.length + 1; // Images + 1 Full Audio
     
     try {
-      // Create a local copy of scenes to work with
       let currentScenes = [...scenes];
       
       // 1. Generate Images one by one
       for (let i = 0; i < currentScenes.length; i++) {
-        // Skip if image already exists (allows resuming)
         if (currentScenes[i].image) {
           completedCount++;
           setGenerationProgress((completedCount / totalTasks) * 100);
@@ -105,40 +104,47 @@ export function WorkflowApp() {
 
         try {
           const image = await generateImageForPhrase(apiKey, currentScenes[i].phrase, imageStyle, imageModel);
-          
-          // Update the specific scene immediately
           const newScenes = [...currentScenes];
           newScenes[i] = { ...newScenes[i], image };
           currentScenes = newScenes;
-          setScenes(newScenes); // Commit to state immediately
-          
+          setScenes(newScenes);
           completedCount++;
           setGenerationProgress((completedCount / totalTasks) * 100);
         } catch (e: any) {
           const errorInfo = parseGeminiError(e);
           if (errorInfo.title === "Quota Exceeded") {
             setError(errorInfo);
-            setRightPanelState('IDLE');
-            return; // Stop processing but keep state
+            // We stay in GENERATING state so the progress bar/images generated stay visible
+            return; 
           }
-          console.error(`Error generating image for scene ${i}:`, e);
+          console.error(`Error scene ${i}:`, e);
           completedCount++;
           setGenerationProgress((completedCount / totalTasks) * 100);
         }
       }
 
       // 2. Generate Full Audio
-      const fullText = currentScenes.map(s => s.phrase).join(". ");
-      const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
-      setFullAudioPcm(audio);
+      try {
+        const fullText = currentScenes.map(s => s.phrase).join(". ");
+        const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
+        setFullAudioPcm(audio);
+      } catch (e: any) {
+        setError(parseGeminiError(e));
+      }
       
       completedCount++;
       setGenerationProgress(100);
       setRightPanelState('PLAYER');
     } catch (err) {
       setError(parseGeminiError(err));
-      setRightPanelState('IDLE');
     }
+  };
+
+  const downloadImage = (base64: string, index: number) => {
+    const link = document.createElement('a');
+    link.href = `data:image/png;base64,${base64}`;
+    link.download = `heartlines-scene-${index+1}.png`;
+    link.click();
   };
 
   const handleScenePhraseChange = (index: number, newPhrase: string) => {
@@ -326,6 +332,18 @@ export function WorkflowApp() {
 
       {/* RIGHT PANEL: Player or Generating */}
       <div className="w-full lg:w-1/2 p-6 lg:p-12 flex flex-col items-center justify-center bg-[#FDFCFB] relative h-screen">
+         {(rightPanelState !== 'IDLE' || scenes.some(s => s.image)) && (
+           <div className="absolute top-8 right-8 z-20 flex gap-2">
+             <button 
+                onClick={() => setIsAssetsModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-[#E5E1DA] rounded-full text-xs font-bold uppercase tracking-widest text-[#1A1A1A] hover:bg-white hover:border-[#C5A880] transition-all shadow-sm"
+             >
+                <ImageIcon className="w-4 h-4" />
+                Library
+             </button>
+           </div>
+         )}
+
          {rightPanelState === 'IDLE' && (
            <div className="text-center opacity-40">
              <ImageIcon className="w-16 h-16 mx-auto mb-4 text-[#A8A196]" />
@@ -584,11 +602,15 @@ export function WorkflowApp() {
                 <ul className="text-xs text-[#7A7570] space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">1</span>
-                    Wait 60 seconds before trying again.
+                    Wait 60 seconds before trying again (Free Tier limits).
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">2</span>
-                    Consider using a Gemini Pro model in settings for higher limits.
+                    Try a different model (Flash models are faster but have stricter limits).
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">3</span>
+                    Open the **Library** to download assets already generated!
                   </li>
                 </ul>
               </div>
@@ -599,6 +621,91 @@ export function WorkflowApp() {
               >
                 Understood
               </button>
+           </div>
+        </div>
+      )}
+
+      {/* ASSETS MODAL */}
+      {isAssetsModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="bg-[#FAF9F7] w-full max-w-4xl max-h-[85vh] p-8 rounded-[3rem] border border-[#E5E1DA] shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-3xl font-sans font-bold text-[#1A1A1A]">Media Library</h2>
+                  <p className="text-[#A8A196] text-sm mt-1">All assets generated for this production</p>
+                </div>
+                <button onClick={() => setIsAssetsModalOpen(false)} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-12 pr-2">
+                {/* Images Grid */}
+                <div className="space-y-6">
+                  <h3 className="text-xs uppercase tracking-widest font-bold text-[#A8A196]">Scenes & Illustrations</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    {scenes.map((scene, idx) => (
+                      <div key={idx} className="group relative bg-white border border-[#E5E1DA] rounded-3xl overflow-hidden shadow-sm aspect-square">
+                        {scene.image ? (
+                          <>
+                            <img src={scene.image} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
+                              <p className="text-white text-[10px] mb-4 line-clamp-3 leading-relaxed">{scene.phrase}</p>
+                              <button 
+                                onClick={() => downloadImage(scene.image!, idx)}
+                                className="bg-white text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold hover:scale-105 transition-transform"
+                              >
+                                Download PNG
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-[#A8A196] space-y-2 opacity-50">
+                            <ImageIcon className="w-8 h-8" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Pending...</span>
+                          </div>
+                        )}
+                        <div className="absolute top-3 left-3 w-6 h-6 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white text-[10px] font-mono">
+                          {idx + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Audio Asset */}
+                <div className="space-y-6">
+                  <h3 className="text-xs uppercase tracking-widest font-bold text-[#A8A196]">Audio Soundtrack</h3>
+                  <div className="bg-white border border-[#E5E1DA] rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm">
+                    <div className="w-16 h-16 bg-[#F5F2EE] rounded-full flex items-center justify-center flex-shrink-0">
+                      <Music className="w-8 h-8 text-[#C5A880]" />
+                    </div>
+                    <div className="flex-1 text-center md:text-left">
+                       <h4 className="font-bold text-[#1A1A1A]">Full Narration Stream (PCM)</h4>
+                       <p className="text-sm text-[#7A7570] mt-1">High-fidelity voice synthesis using {selectedVoice}</p>
+                    </div>
+                    {fullAudioPcm ? (
+                       <button 
+                        onClick={() => {
+                          const blob = new Blob([new Uint8Array(atob(fullAudioPcm).split("").map(c => c.charCodeAt(0)))], { type: 'audio/pcm' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = "heartlines-narration.pcm";
+                          link.click();
+                        }}
+                        className="bg-[#1A1A1A] text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide hover:bg-black transition-colors"
+                      >
+                        Download Audio
+                      </button>
+                    ) : (
+                      <div className="px-8 py-4 bg-[#F5F2EE] text-[#A8A196] rounded-full text-sm font-bold animate-pulse">
+                        Wating for completion...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
            </div>
         </div>
       )}
