@@ -91,19 +91,19 @@ export async function exportVideoFast(
       recorder.start();
       audio.play();
 
-      let startTime = performance.now();
-      let currentScene = -1;
+      const fps = 60;
+      const frameDuration = 1 / fps;
+      let currentTime = 0;
 
       const renderFrame = () => {
-        const elapsed = (performance.now() - startTime) / 1000;
-        if (elapsed >= audioDuration) {
+        if (currentTime >= audioDuration) {
           recorder.stop();
           audio.pause();
           return;
         }
 
-        const targetSceneIndex = Math.min(Math.max(0, Math.floor(elapsed / durationPerScene)), loadedImages.length - 1);
-        const sceneProgress = (elapsed % durationPerScene) / durationPerScene;
+        const targetSceneIndex = Math.min(Math.max(0, Math.floor(currentTime / durationPerScene)), loadedImages.length - 1);
+        const sceneProgress = (currentTime % durationPerScene) / durationPerScene;
         
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -113,7 +113,7 @@ export async function exportVideoFast(
         
         // Image Animation (Subtle Zoom)
         const baseScale = Math.max(canvas.width / img.width, canvas.height / img.height);
-        const currentScale = baseScale * (1 + sceneProgress * 0.05); // 5% zoom over scene
+        const currentScale = baseScale * (1 + sceneProgress * 0.08); // Slightly more visible zoom (8%)
         
         const scaledWidth = img.width * currentScale;
         const scaledHeight = img.height * currentScale;
@@ -123,8 +123,8 @@ export async function exportVideoFast(
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
 
         // Subtitles Overlay
-        // 1. Bottom Dark Gradient
-        const gradientAlpha = Math.min(1, (elapsed % durationPerScene) / 0.5);
+        const sceneElapsed = currentTime % durationPerScene;
+        const gradientAlpha = Math.min(1, sceneElapsed / 0.5);
         ctx.save();
         ctx.globalAlpha = gradientAlpha;
         const gradient = ctx.createLinearGradient(0, canvas.height * 0.7, 0, canvas.height);
@@ -134,9 +134,8 @@ export async function exportVideoFast(
         ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
         ctx.restore();
 
-        // 2. Draw Text (Fade In)
         ctx.save();
-        const textFadeIn = Math.min(1, (elapsed % durationPerScene) / 0.4); // 0.4s fade
+        const textFadeIn = Math.min(1, sceneElapsed / 0.4);
         ctx.globalAlpha = textFadeIn;
         ctx.fillStyle = 'white';
         ctx.textAlign = 'left';
@@ -170,9 +169,9 @@ export async function exportVideoFast(
         }
         ctx.restore();
         
-        currentScene = targetSceneIndex;
+        onProgress?.((currentTime / audioDuration) * 100);
         
-        onProgress?.((elapsed / audioDuration) * 100);
+        currentTime += frameDuration;
         requestAnimationFrame(renderFrame);
       };
 
