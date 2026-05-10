@@ -13,11 +13,12 @@ export async function generatePoem(apiKey: string, topic: string, model: string 
   
   const response = await ai.models.generateContent({
     model: model,
-    contents: `Write a romantic, emotional, and deep 30-second poem about the topic: "${topic}". 
-    It should be in the style of highly engaging TikTok poetry accounts like 'Heartlines', where each line evokes a strong feeling.
-    Split the poem into 5-8 short, distinct phrases (each phrase will be a separate scene).
-    Language: French or English based on the topic. If the topic is French, write French. If english, write english. 
-    The tone must be: romantic, quiet, deep, emotional.`,
+    contents: `Write a romantic, emotional, and deep poem about the topic: "${topic}". 
+    It should be in the style of highly engaging TikTok/Reels poetry accounts like 'Heartlines', where each line evokes a strong feeling.
+    Split the poem into 6-8 distinct phrases (each phrase will be a separate scene).
+    Make each phrase slightly longer and more descriptive (about 12-20 words each) so the narrator has enough substantive, deep text to say at a standard poet's pace.
+    Language: French or English based on the topic.
+    The tone must be: romantic, quiet, deep, emotionally resonant.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {

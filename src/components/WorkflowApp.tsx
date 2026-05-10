@@ -209,9 +209,16 @@ export function WorkflowApp() {
     setCurrentSceneIndex(0);
 
     const audio = new Audio(wavUrl);
+    
     audio.onended = () => {
       setIsPlaying(false);
     };
+    
+    audio.onerror = (e) => {
+      console.error("Audio playback error", e);
+      setIsPlaying(false);
+    };
+    
     audio.ontimeupdate = () => {
       if (audio.duration) {
         const percent = (audio.currentTime / audio.duration) * 100;
@@ -452,12 +459,12 @@ export function WorkflowApp() {
                       />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/60 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/60 pointer-events-none"></div>
                 
-                <div className="relative z-10 px-6 text-center flex flex-col items-center justify-center h-full gap-8">
+                <div className="absolute inset-x-0 bottom-0 z-20 p-8 pt-20 flex flex-col items-center justify-end pointer-events-none">
                   <p 
                      key={currentSceneIndex} 
-                     className="font-sans text-2xl font-bold text-white/90 leading-snug tracking-wide drop-shadow-2xl"
+                     className="font-sans text-2xl font-bold text-white/90 leading-snug tracking-wide drop-shadow-2xl text-balance"
                      style={{
                          animation: isPlaying ? 'fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
                          opacity: isPlaying ? 0 : 1
@@ -474,7 +481,7 @@ export function WorkflowApp() {
                 {!isPlaying && (
                     <button 
                         onClick={playSequence}
-                        className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all hover:bg-black/20 group-hover:backdrop-blur-none"
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all hover:bg-black/20 group-hover:backdrop-blur-none z-30"
                     >
                         <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl transition-transform hover:scale-110 active:scale-95 text-white">
                             <Play className="w-8 h-8 ml-1" />
@@ -751,8 +758,22 @@ export function WorkflowApp() {
                        <p className="text-sm text-[#7A7570] mt-1">High-fidelity voice synthesis using {selectedVoice}</p>
                     </div>
                     {wavUrl ? (
-                      <div className="flex flex-col items-center md:items-end gap-3 w-full md:w-auto z-50 shrink-0 pointer-events-auto">
-                        <audio src={wavUrl} controls controlsList="nodownload" className="h-12 w-full md:w-[320px] pointer-events-auto" />
+                      <div className="flex flex-col items-center flex-wrap md:items-end gap-3 w-full md:w-auto z-50 shrink-0 pointer-events-auto">
+                        <button 
+                          onClick={() => {
+                            if (!wavUrl) return;
+                            try {
+                               const a = new Audio(wavUrl);
+                               a.play();
+                            } catch(e) {
+                               console.error(e);
+                            }
+                          }}
+                          className="flex items-center justify-center gap-2 bg-[#F5F2EE] border border-[#E5E1DA] rounded-full px-6 py-3 text-sm font-bold text-[#1A1A1A] hover:bg-white transition-all w-full md:w-auto shadow-sm"
+                        >
+                           <Play className="w-4 h-4 ml-1" />
+                           Preview Audio
+                        </button>
                         <button 
                           onClick={() => {
                             const link = document.createElement('a');
@@ -760,7 +781,7 @@ export function WorkflowApp() {
                             link.download = "heartlines-narration.wav";
                             link.click();
                           }}
-                          className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1A1A1A] hover:text-[#C5A880] transition-colors"
+                          className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-[#A8A196] hover:text-[#C5A880] transition-colors mt-1"
                         >
                           <Download className="w-4 h-4" />
                           Download WAV
