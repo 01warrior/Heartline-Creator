@@ -31,7 +31,7 @@ export function WorkflowApp() {
   // Model Settings
   const [scriptModel, setScriptModel] = useState('gemini-3-flash-preview');
   const [imageModel, setImageModel] = useState('gemini-2.5-flash-image');
-  const [ttsModel, setTtsModel] = useState('gemini-2.5-flash-tts');
+  const [ttsModel, setTtsModel] = useState('gemini-3.1-flash-tts-preview');
   const [selectedVoice, setSelectedVoice] = useState('Kore');
 
   const handleKeySubmit = (key: string) => {
@@ -46,6 +46,12 @@ export function WorkflowApp() {
         return {
           title: "Quota Exceeded",
           message: "You've hit the Gemini API free tier limit. This usually happens after a few generations in a minute. Please wait about 60 seconds and try again."
+        };
+      }
+      if (errorStr.includes('404') || errorStr.includes('NOT_FOUND')) {
+        return {
+          title: "Model Not Found (404)",
+          message: "The model selected in settings was not found. This might be because the model ID is slightly different or not available for your API Key. Please try 'Gemini 3.1 Flash TTS' instead."
         };
       }
       if (errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED')) {
@@ -472,9 +478,10 @@ export function WorkflowApp() {
                     onChange={e => setTtsModel(e.target.value)}
                     className="w-full bg-white border border-[#E5E1DA] p-4 rounded-xl text-sm focus:outline-none focus:border-[#C5A880] appearance-none"
                   >
-                    <option value="gemini-2.5-flash-tts">Gemini 2.5 Flash TTS</option>
-                    <option value="gemini-2.5-pro-tts">Gemini 2.5 Pro TTS</option>
-                    <option value="gemini-3.1-flash-tts-preview">Gemini 3.1 Flash TTS</option>
+                    <option value="gemini-3.1-flash-tts-preview">Gemini 3.1 Flash TTS (Recommended)</option>
+                    <option value="gemini-3.1-pro-tts-preview">Gemini 3.1 Pro TTS</option>
+                    <option value="gemini-2.5-flash-preview-tts">Gemini 2.5 Flash TTS Preview</option>
+                    <option value="gemini-2.5-pro-preview-tts">Gemini 2.5 Pro TTS Preview</option>
                   </select>
                 </div>
 

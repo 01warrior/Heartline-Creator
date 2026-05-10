@@ -110,7 +110,7 @@ export async function generateTopicSuggestions(apiKey: string, model: string = '
 
 export const AVAILABLE_VOICES = ['Kore', 'Puck', 'Charon', 'Fenrir', 'Aoede'];
 
-export async function generateFullPoemAudio(apiKey: string, fullText: string, model: string = 'gemini-2.5-flash-tts', voiceName: string = 'Kore'): Promise<string> {
+export async function generateFullPoemAudio(apiKey: string, fullText: string, model: string = 'gemini-3.1-flash-tts-preview', voiceName: string = 'Kore'): Promise<string> {
   const ai = getAI(apiKey);
   
   const response = await ai.models.generateContent({
