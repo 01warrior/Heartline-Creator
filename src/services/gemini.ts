@@ -152,13 +152,31 @@ export function audioDataToBlob(base64Data: string, mimeType: string): Blob {
     bytes[i] = binaryString.charCodeAt(i);
   }
 
-  // If the data already has a RIFF header, it is already a valid WAV file.
-  if (binaryString.startsWith('RIFF')) {
+  // Debugging: Identify real file type
+  const headerStr = String.fromCharCode(...Array.from(bytes.subarray(0, 16)));
+  console.log(`[Audio] Gemini API provided mimetype: ${mimeType}`);
+  console.log(`[Audio] Magic Bytes: ${Array.from(bytes.subarray(0, 4)).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+
+  // If the data already has a RIFF WAVE header, it is already a valid WAV file.
+  if (headerStr.startsWith('RIFF') && headerStr.includes('WAVE')) {
+    console.log('[Audio] Detected clean WAV');
     return new Blob([bytes], { type: 'audio/wav' });
+  }
+  
+  if (headerStr.startsWith('ID3') || (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0)) {
+    console.log('[Audio] Detected MP3');
+    return new Blob([bytes], { type: 'audio/mp3' });
+  }
+  
+  if (headerStr.includes('OggS')) {
+    console.log('[Audio] Detected OGG');
+    return new Blob([bytes], { type: 'audio/ogg' });
   }
 
   // If the model actually returned raw PCM, format it to WAV for the browser to play it via <audio> tags
-  if (mimeType.toLowerCase().includes('pcm') || !mimeType || mimeType === 'audio/wav') {
+  // AND only wrap it if we didn't identify it as another format!
+  if (mimeType.toLowerCase().includes('pcm') || !mimeType) {
+    console.log('[Audio] Wrapping raw PCM in WAV header');
     const sampleRate = 24000;
     const numChannels = 1;
     const bitsPerSample = 16;
@@ -194,6 +212,7 @@ export function audioDataToBlob(base64Data: string, mimeType: string): Blob {
     return new Blob([wavHeader, bytes], { type: 'audio/wav' });
   }
   
+  console.log('[Audio] Fallback to provided mimetype:', mimeType);
   return new Blob([bytes], { type: mimeType });
 }
 
