@@ -2,12 +2,15 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { saveAs } from 'file-saver';
 
-export async function exportVideo(
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { saveAs } from 'file-saver';
+
+async function exportVideoFFmpeg(
   scenes: { phrase: string; image?: string }[],
   wavUrl: string,
   onProgress?: (progress: number) => void
 ): Promise<void> {
-
   // 1. INIT FFMPEG single-thread (fichiers locaux, pas de CORS)
   const ffmpeg = new FFmpeg();
 
@@ -21,36 +24,26 @@ export async function exportVideo(
   console.log('[FFmpeg] crossOriginIsolated:', window.crossOriginIsolated);
   console.log('[FFmpeg] SharedArrayBuffer available:', typeof SharedArrayBuffer !== 'undefined');
   
-  try {
-    console.log('[FFmpeg] Initializing...');
-    const baseURL = window.location.origin;
-    
-    console.log('[FFmpeg] Fetching core and wasm as blobs...');
-    
-    // Explicitly check if files are fetchable to pinpoint network issues
-    try {
-      const resp = await fetch(`${baseURL}/ffmpeg-core.js`);
-      console.log('[FFmpeg] ffmpeg-core.js fetch status:', resp.status);
-      if (!resp.ok) throw new Error(`Could not fetch ffmpeg-core.js: ${resp.status}`);
-    } catch (e) {
-      console.error('[FFmpeg] Failed to fetch ffmpeg-core.js:', e);
-    }
+  console.log('[FFmpeg] Initializing...');
+  
+  console.log('[FFmpeg] Fetching core and wasm as blobs...');
+  
+  // Explicitly check if files are fetchable to pinpoint network issues
+  const resp = await fetch(`${baseURL}/ffmpeg-core.js`);
+  console.log('[FFmpeg] ffmpeg-core.js fetch status:', resp.status);
+  if (!resp.ok) throw new Error(`Could not fetch ffmpeg-core.js: ${resp.status}`);
 
-    const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-    console.log('[FFmpeg] coreURL created');
-    const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
-    console.log('[FFmpeg] wasmURL created');
-    
-    console.log('[FFmpeg] Loading ffmpeg instance...');
-    await ffmpeg.load({
-      coreURL,
-      wasmURL,
-    });
-    console.log('[FFmpeg] FFmpeg loaded successfully');
-  } catch (err) {
-    console.error('[FFmpeg] Critical error during load:', err);
-    throw err;
-  }
+  const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+  console.log('[FFmpeg] coreURL created');
+  const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+  console.log('[FFmpeg] wasmURL created');
+  
+  console.log('[FFmpeg] Loading ffmpeg instance...');
+  await ffmpeg.load({
+    coreURL,
+    wasmURL,
+  });
+  console.log('[FFmpeg] FFmpeg loaded successfully');
 
   // 2. AUDIO
   console.log('[FFmpeg] Processing audio:', wavUrl);
@@ -120,4 +113,181 @@ export async function exportVideo(
   );
 
   saveAs(blob, 'video-production.mp4');
+}
+
+async function exportVideoMediaRecorder(
+  scenes: { phrase: string; image?: string }[],
+  wavUrl: string,
+  onProgress?: (progress: number) => void
+): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      console.log('[MediaRecorder] Starting fallback export...');
+      if (onProgress) onProgress(5);
+      
+      const audio = new Audio();
+      audio.src = wavUrl;
+      audio.crossOrigin = 'anonymous';
+
+      await new Promise<void>((res, rej) => {
+        const timeout = setTimeout(() => {
+          if (audio.readyState >= 2) res(); // HAVE_CURRENT_DATA or better
+          else rej(new Error("Audio loading timeout"));
+        }, 15000);
+
+        audio.onloadedmetadata = () => {
+          if (audio.readyState >= 2) {
+            clearTimeout(timeout);
+            res();
+          }
+        };
+        audio.oncanplaythrough = () => {
+          clearTimeout(timeout);
+          res();
+        };
+        audio.onerror = () => {
+          clearTimeout(timeout);
+          rej(new Error("Failed to load audio for export"));
+        };
+        audio.load();
+      });
+
+      const audioDuration = audio.duration;
+      const width = 1080;
+      const height = 1920;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d', { alpha: false }); // Better performance
+      if (!ctx) throw new Error("Could not get canvas context");
+
+      // Load all images first
+      if (onProgress) onProgress(10);
+      const loadedImages = await Promise.all(
+        scenes.map(async (scene) => {
+          if (!scene.image) return null;
+          return new Promise<HTMLImageElement | null>((res) => {
+            const img = new Image();
+            img.onload = () => res(img);
+            img.onerror = () => res(null);
+            img.src = scene.image!;
+          });
+        })
+      );
+      if (onProgress) onProgress(20);
+
+      const canvasStream = canvas.captureStream(30); // 30 FPS
+      
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      const source = audioContext.createMediaElementSource(audio);
+      const dest = audioContext.createMediaStreamDestination();
+      source.connect(dest);
+      source.connect(audioContext.destination); 
+      
+      const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks()
+      ]);
+
+      const formats = [
+        'video/mp4;codecs=h264',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+      const mimeType = formats.find(f => MediaRecorder.isTypeSupported(f)) || 'video/webm';
+      const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+      const recorder = new MediaRecorder(combinedStream, {
+        mimeType,
+        videoBitsPerSecond: 8000000 // 8Mbps
+      });
+
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `video-production.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+
+      recorder.onerror = (e) => reject(e);
+
+      // Animation Loop
+      const numScenes = scenes.length;
+      const durationPerScene = audioDuration / numScenes;
+
+      const draw = () => {
+        const currentTime = audio.currentTime;
+        const progress = (currentTime / audioDuration) * 100;
+        if (onProgress) onProgress(20 + (progress * 0.8));
+
+        const sceneIndex = Math.min(
+          Math.floor(currentTime / durationPerScene),
+          numScenes - 1
+        );
+
+        const img = loadedImages[sceneIndex];
+
+        // Background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+
+        if (img) {
+          const scale = Math.max(width / img.width, height / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          const x = (width - w) / 2;
+          const y = (height - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+        }
+
+        if (currentTime < audioDuration && !audio.paused) {
+          requestAnimationFrame(draw);
+        }
+      };
+
+      recorder.start();
+      await audio.play();
+      draw();
+
+      audio.onended = () => {
+        recorder.stop();
+        audioContext.close();
+      };
+
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+export async function exportVideo(
+  scenes: { phrase: string; image?: string }[],
+  wavUrl: string,
+  onProgress?: (progress: number) => void
+): Promise<void> {
+  try {
+    console.log('[ExportVideo] Attempting FFmpeg export...');
+    await exportVideoFFmpeg(scenes, wavUrl, onProgress);
+    console.log('[ExportVideo] FFmpeg export successful');
+  } catch (error) {
+    console.error('[ExportVideo] FFmpeg failed, falling back to MediaRecorder:', error);
+    await exportVideoMediaRecorder(scenes, wavUrl, onProgress);
+    console.log('[ExportVideo] MediaRecorder export successful');
+  }
 }
