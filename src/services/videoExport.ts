@@ -87,25 +87,22 @@ export async function exportVideoFast(
          reject(e);
       };
 
-      recorder.start();
+      let exportFinished = false;
       
-      let startTime = 0;
-      audio.onplay = () => {
-        startTime = performance.now();
-      };
-      audio.play();
+      const renderFrame = () => {
+        if (exportFinished) return;
 
-      const renderFrame = (now: number) => {
-        if (!startTime) {
-          requestAnimationFrame(renderFrame);
-          return;
-        }
-
-        const elapsed = (now - startTime) / 1000;
+        // Master clock is the audio position
+        const elapsed = audio.currentTime;
         
-        if (elapsed >= audioDuration) {
-          console.log('[MediaRecorder] Export finished.');
-          recorder.stop();
+        // Force rendering at least the first frame even if audio hasn't started
+        // Also check for end of audio (with a small safety buffer)
+        if (audio.ended || (elapsed >= audioDuration - 0.05 && elapsed > 0)) {
+          console.log('[MediaRecorder] Export reached end of audio.');
+          exportFinished = true;
+          if (recorder.state !== 'inactive') {
+            recorder.stop();
+          }
           audio.pause();
           return;
         }
@@ -121,7 +118,7 @@ export async function exportVideoFast(
         
         // Image Animation (Smooth Zoom)
         const baseScale = Math.max(canvas.width / img.width, canvas.height / img.height);
-        const currentScale = baseScale * (1 + sceneProgress * 0.10); // 10% zoom for more impact
+        const currentScale = baseScale * (1 + sceneProgress * 0.12); // Slightly more zoom for visual feedback
         
         const scaledWidth = img.width * currentScale;
         const scaledHeight = img.height * currentScale;
@@ -145,16 +142,16 @@ export async function exportVideoFast(
         // 2. Draw Text (Fade In + Slide Up)
         ctx.save();
         const textFadeIn = Math.min(1, sceneElapsed / 0.6); // 0.6s fade for elegance
-        const slideUp = (1 - Math.pow(1 - textFadeIn, 3)) * 1; // Cubic ease out
-        const yOffset = (1 - slideUp) * 30; // 30px slide
+        const slideUp = (1 - Math.pow(1 - textFadeIn, 3)); // Cubic ease out
+        const yOffset = (1 - slideUp) * 40; // 40px slide
 
         ctx.globalAlpha = textFadeIn;
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 15;
         ctx.fillStyle = 'white';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
-        ctx.font = 'bold 72px Inter, system-ui, sans-serif'; // Slightly larger
+        ctx.font = 'bold 72px Inter, system-ui, sans-serif'; 
         
         const padding = 100;
         const maxWidth = canvas.width - (padding * 2);
@@ -174,8 +171,8 @@ export async function exportVideoFast(
         }
         lines.push(line);
 
-        const lineHeight = 90;
-        let currentY = canvas.height - 220 + yOffset; 
+        const lineHeight = 100;
+        let currentY = canvas.height - 240 + yOffset; 
         
         for (let i = lines.length - 1; i >= 0; i--) {
           ctx.fillText(lines[i].trim(), padding, currentY);
@@ -187,6 +184,13 @@ export async function exportVideoFast(
         requestAnimationFrame(renderFrame);
       };
 
+      // Start recording and audio playback
+      recorder.start();
+      audio.play().catch(e => {
+        console.error('Audio play failed:', e);
+        reject(e);
+      });
+      
       requestAnimationFrame(renderFrame);
     } catch (e) {
       reject(e);
