@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, pcmToWav } from '../services/gemini';
+import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, audioDataToBlob } from '../services/gemini';
 import { ApiKeyInput } from './ApiKeyInput';
 import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive } from 'lucide-react';
 import JSZip from 'jszip';
@@ -18,7 +18,7 @@ export function WorkflowApp() {
   const [imageStyle, setImageStyle] = useState('cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere');
   const [isGeneratingPoem, setIsGeneratingPoem] = useState(false);
   const [scenes, setScenes] = useState<Scene[]>([]);
-  const [fullAudioPcm, setFullAudioPcm] = useState<string | null>(null);
+  const [fullAudio, setFullAudio] = useState<{data: string, mimeType: string} | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
 
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
@@ -33,18 +33,18 @@ export function WorkflowApp() {
   const [wavUrl, setWavUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (fullAudioPcm) {
+    if (fullAudio) {
       try {
-        const url = URL.createObjectURL(pcmToWav(fullAudioPcm));
+        const url = URL.createObjectURL(audioDataToBlob(fullAudio.data, fullAudio.mimeType));
         setWavUrl(url);
         return () => URL.revokeObjectURL(url);
       } catch(e) {
-        console.error("Failed to convert PCM to WAV", e);
+        console.error("Failed to convert audio to Blob", e);
       }
     } else {
       setWavUrl(null);
     }
-  }, [fullAudioPcm]);
+  }, [fullAudio]);
 
   // Model Settings
   const [scriptModel, setScriptModel] = useState('gemini-3-flash-preview');
@@ -144,7 +144,7 @@ export function WorkflowApp() {
       try {
         const fullText = currentScenes.map(s => s.phrase).join(". ");
         const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
-        setFullAudioPcm(audio);
+        setFullAudio(audio);
       } catch (e: any) {
         setError(parseGeminiError(e));
       }
@@ -179,9 +179,9 @@ export function WorkflowApp() {
     });
 
     // Add audio if available
-    if (fullAudioPcm) {
+    if (fullAudio) {
       try {
-        const wavBlob = pcmToWav(fullAudioPcm);
+        const wavBlob = audioDataToBlob(fullAudio.data, fullAudio.mimeType);
         zip.file("narration.wav", wavBlob);
       } catch (err) {
         console.error("Failed to add WAV to zip", err);
@@ -204,22 +204,29 @@ export function WorkflowApp() {
   };
 
   const playSequence = async () => {
-    if (isPlaying || !fullAudioPcm) return;
+    if (isPlaying || !wavUrl) return;
     setIsPlaying(true);
     setCurrentSceneIndex(0);
 
+    const audio = new Audio(wavUrl);
+    audio.onended = () => {
+      setIsPlaying(false);
+    };
+    audio.ontimeupdate = () => {
+      if (audio.duration) {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        const sceneIndex = Math.min(
+            Math.floor((percent / 100) * scenes.length),
+            scenes.length - 1
+        );
+        setCurrentSceneIndex(sceneIndex);
+      }
+    };
+
     try {
-        await playPcmAudio(fullAudioPcm, (percent) => {
-            // Calculate which scene should be visible based on playback percentage
-            const sceneIndex = Math.min(
-                Math.floor((percent / 100) * scenes.length),
-                scenes.length - 1
-            );
-            setCurrentSceneIndex(sceneIndex);
-        });
+        await audio.play();
     } catch(e) {
         console.error("Playback error", e);
-    } finally {
         setIsPlaying(false);
     }
   };
@@ -739,13 +746,13 @@ export function WorkflowApp() {
                     <div className="w-16 h-16 bg-[#F5F2EE] rounded-full flex items-center justify-center flex-shrink-0">
                       <Music className="w-8 h-8 text-[#C5A880]" />
                     </div>
-                    <div className="flex-1 text-center md:text-left pointer-events-none md:pointer-events-auto">
-                       <h4 className="font-bold text-[#1A1A1A]">Full Narration Stream (PCM)</h4>
+                    <div className="flex-1 text-center md:text-left min-w-0">
+                       <h4 className="font-bold text-[#1A1A1A] truncate">Full Narration Stream</h4>
                        <p className="text-sm text-[#7A7570] mt-1">High-fidelity voice synthesis using {selectedVoice}</p>
                     </div>
                     {wavUrl ? (
-                      <div className="flex flex-col items-center md:items-end gap-3 w-full md:w-auto relative z-50">
-                        <audio src={wavUrl} controls className="h-12 w-full min-w-[250px]" />
+                      <div className="flex flex-col items-center md:items-end gap-3 w-full md:w-auto z-50 shrink-0 pointer-events-auto">
+                        <audio src={wavUrl} controls controlsList="nodownload" className="h-12 w-full md:w-[320px] pointer-events-auto" />
                         <button 
                           onClick={() => {
                             const link = document.createElement('a');

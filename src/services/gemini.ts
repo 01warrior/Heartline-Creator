@@ -110,17 +110,16 @@ export async function generateTopicSuggestions(apiKey: string, model: string = '
 
 export const AVAILABLE_VOICES = ['Kore', 'Puck', 'Charon', 'Fenrir', 'Aoede'];
 
-export async function generateFullPoemAudio(apiKey: string, fullText: string, model: string = 'gemini-3.1-flash-tts-preview', voiceName: string = 'Kore'): Promise<string> {
+export async function generateFullPoemAudio(apiKey: string, fullText: string, model: string = 'gemini-3.1-flash-tts-preview', voiceName: string = 'Kore'): Promise<{data: string, mimeType: string}> {
   const ai = getAI(apiKey);
   
   const response = await ai.models.generateContent({
     model: model,
     contents: [{ 
       parts: [{ 
-        text: `Read this poem with a deep, romantic, and poetic voice. 
-        Speak slowly. 
-        IMPORTANT: Take a 2-second breath/pause after each line/phrase. 
-        The total duration should be around 30 seconds.
+        text: `Read this poem with a romantic, poetic voice. 
+        Speak at a normal, natural poetry-reading pace (not too slow). 
+        You can convey emotion through tone rather than just speaking slowly.
         
         Poem:
         ${fullText}` 
@@ -136,58 +135,61 @@ export async function generateFullPoemAudio(apiKey: string, fullText: string, mo
     },
   });
 
-  const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (base64Audio) {
-    return base64Audio;
+  const inlineData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+  if (inlineData?.data) {
+    return { data: inlineData.data, mimeType: inlineData.mimeType || 'audio/pcm;rate=24000' };
   }
   
   throw new Error("Failed to generate full audio.");
 }
 
-export function pcmToWav(base64Data: string): Blob {
+export function audioDataToBlob(base64Data: string, mimeType: string): Blob {
   const binaryString = atob(base64Data);
   const len = binaryString.length;
-  const pcmData = new Uint8Array(len);
+  const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
-    pcmData[i] = binaryString.charCodeAt(i);
+    bytes[i] = binaryString.charCodeAt(i);
   }
-  
-  const sampleRate = 24000;
-  const numChannels = 1;
-  const bitsPerSample = 16;
-  
-  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-  const blockAlign = numChannels * (bitsPerSample / 8);
-  
-  const wavHeader = new ArrayBuffer(44);
-  const view = new DataView(wavHeader);
-  
-  const writeString = (view: DataView, offset: number, string: string) => {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-  
-  // "RIFF" chunk descriptor
-  writeString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + pcmData.length, true);
-  writeString(view, 8, 'WAVE');
-  
-  // "fmt " sub-chunk
-  writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, bitsPerSample, true);
-  
-  // "data" sub-chunk
-  writeString(view, 36, 'data');
-  view.setUint32(40, pcmData.length, true);
-  
-  return new Blob([wavHeader, pcmData], { type: 'audio/wav' });
+
+  // If the model actually returned raw PCM, format it to WAV for the browser to play it via <audio> tags
+  if (mimeType.toLowerCase().includes('pcm')) {
+    const sampleRate = 24000;
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    
+    const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+    const blockAlign = numChannels * (bitsPerSample / 8);
+    
+    const wavHeader = new ArrayBuffer(44);
+    const view = new DataView(wavHeader);
+    
+    const writeString = (view: DataView, offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + bytes.length, true);
+    writeString(view, 8, 'WAVE');
+    
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    
+    writeString(view, 36, 'data');
+    view.setUint32(40, bytes.length, true);
+    
+    return new Blob([wavHeader, bytes], { type: 'audio/wav' });
+  }
+
+  // Otherwise, if it's already an mp3 or wav or ogg etc.
+  return new Blob([bytes], { type: mimeType });
 }
 
 export async function playPcmAudio(base64Data: string, onProgress?: (percent: number) => void): Promise<void> {
