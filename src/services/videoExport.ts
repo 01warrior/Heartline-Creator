@@ -6,7 +6,7 @@ export async function exportVideoFast(
   scenes: { phrase: string; image?: string }[],
   wavUrl: string,
   onProgress?: (progress: number) => void
-): Promise<void> {
+): Promise<Blob> {
   return new Promise(async (resolve, reject) => {
     try {
       console.log('[MediaRecorder] Starting fast export...');
@@ -80,8 +80,7 @@ export async function exportVideoFast(
       };
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType });
-        saveAs(blob, mimeType === 'video/mp4' ? 'video-production.mp4' : 'video-production.webm');
-        resolve();
+        resolve(blob);
       };
       recorder.onerror = (e) => {
          console.error('Failed to export video via MediaRecorder', e);
@@ -186,7 +185,7 @@ export async function exportVideo(
   scenes: { phrase: string; image?: string }[],
   wavUrl: string,
   onProgress?: (progress: number) => void
-): Promise<void> {
+): Promise<Blob> {
 
   // 1. INIT FFMPEG single-thread (fichiers locaux, pas de CORS)
   const ffmpeg = new FFmpeg();
@@ -272,6 +271,6 @@ export async function exportVideo(
     [data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer)],
     { type: 'video/mp4' }
   );
-
-  saveAs(blob, 'video-production.mp4');
+  
+  return blob;
 }

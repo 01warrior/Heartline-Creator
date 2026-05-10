@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, audioDataToBlob } from '../services/gemini';
 import { exportVideo, exportVideoFast } from '../services/videoExport';
 import { ApiKeyInput } from './ApiKeyInput';
-import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
@@ -35,6 +35,7 @@ export function WorkflowApp() {
   const [wavUrl, setWavUrl] = useState<string | null>(null);
   const [isExportingVideo, setIsExportingVideo] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (fullAudio) {
@@ -209,9 +210,11 @@ export function WorkflowApp() {
     setIsExportingVideo(true);
     setExportProgress(0);
     try {
-      await exportVideoFast(scenes, wavUrl, (progress) => {
+      const blob = await exportVideoFast(scenes, wavUrl, (progress) => {
         setExportProgress(progress);
       });
+      setExportedVideoBlob(blob);
+      saveAs(blob, blob.type === 'video/mp4' ? 'video-production.mp4' : 'video-production.webm');
     } catch (err) {
       console.error("Failed to export video cleanly", err);
       alert("Failed to export video via fast mode.");
@@ -226,15 +229,43 @@ export function WorkflowApp() {
     setIsExportingVideo(true);
     setExportProgress(0);
     try {
-      await exportVideo(scenes, wavUrl, (progress) => {
+      const blob = await exportVideo(scenes, wavUrl, (progress) => {
         setExportProgress(progress);
       });
+      setExportedVideoBlob(blob);
+      saveAs(blob, 'video-production.mp4');
     } catch (err) {
       console.error("Failed to export video", err);
       alert("Failed to export video.");
     } finally {
       setIsExportingVideo(false);
       setExportProgress(0);
+    }
+  };
+
+  const handleShareVideo = async () => {
+    if (!exportedVideoBlob) return;
+
+    const file = new File([exportedVideoBlob], 
+      exportedVideoBlob.type === 'video/mp4' ? 'heartlines-video.mp4' : 'heartlines-video.webm', 
+      { type: exportedVideoBlob.type }
+    );
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Heartlines Video',
+          text: 'Check out my poem video created with Heartlines!',
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
+      }
+    } else {
+      // Fallback for browsers that don't support file sharing
+      alert("Sharing not supported on this browser. Please download the video and upload it manually to TikTok/Facebook/YouTube.");
     }
   };
 
@@ -838,6 +869,73 @@ export function WorkflowApp() {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Social Share Section */}
+                <div className="space-y-6 pb-8">
+                  <h3 className="text-xs uppercase tracking-widest font-bold text-[#A8A196]">Partagez votre chef-d'œuvre</h3>
+                  <div className="bg-[#1A1A1A] rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl bg-gradient-to-br from-[#C5A880] to-transparent w-64 h-64 rounded-full pointer-events-none group-hover:scale-125 transition-transform duration-700"></div>
+                    
+                    <div className="relative z-10 space-y-2 text-center md:text-left">
+                       <h4 className="text-2xl font-bold font-sans tracking-tight flex items-center justify-center md:justify-start gap-3">
+                          Prêt pour le buzz ?
+                          <Sparkles className="w-5 h-5 text-[#C5A880]" />
+                       </h4>
+                       <p className="text-white/60 text-sm max-w-xs">
+                          Partagez votre vidéo directement ou lancez l'application pour l'uploader.
+                       </p>
+                    </div>
+
+                    <div className="relative z-10 flex flex-wrap items-center justify-center gap-4">
+                       {exportedVideoBlob && (
+                         <button 
+                           onClick={handleShareVideo}
+                           className="flex items-center gap-3 bg-white text-black px-8 py-4 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl"
+                         >
+                            <Share2 className="w-5 h-5" />
+                            Partager la Vidéo
+                         </button>
+                       )}
+
+                       <div className="flex items-center gap-3 bg-white/10 p-2 rounded-full border border-white/10 backdrop-blur-md">
+                          <a 
+                            href="https://www.tiktok.com/upload" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors group/link"
+                            title="Upload to TikTok"
+                          >
+                             <svg className="w-5 h-5 fill-white group-hover/link:scale-110 transition-transform" viewBox="0 0 24 24">
+                                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.09-1.47V15c0 1.53-.45 3.12-1.57 4.21-1.12 1.11-2.73 1.63-4.27 1.78-1.54.15-3.12-.41-4.22-1.52-1.12-1.1-1.63-2.72-1.78-4.26-.15-1.54.4-3.12 1.51-4.22 1.11-1.12 2.72-1.63 4.26-1.78 1.54-.15 3.12.41 4.22 1.52.12.12.24.25.35.38V.02z" />
+                             </svg>
+                          </a>
+                          <a 
+                            href="https://www.facebook.com/" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors group/link"
+                            title="Share on Facebook"
+                          >
+                             <Facebook className="w-5 h-5 text-white group-hover/link:scale-110 transition-transform" />
+                          </a>
+                          <a 
+                            href="https://www.youtube.com/upload" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors group/link"
+                            title="Upload to YouTube"
+                          >
+                             <Youtube className="w-5 h-5 text-white group-hover/link:scale-110 transition-transform" />
+                          </a>
+                       </div>
+                    </div>
+                  </div>
+                  {!exportedVideoBlob && (
+                     <p className="text-center text-[10px] text-[#A8A196] font-bold uppercase tracking-widest mt-4">
+                        💡 Exportez la vidéo d'abord pour activer le partage direct
+                     </p>
+                  )}
                 </div>
               </div>
            </div>
