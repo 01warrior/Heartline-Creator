@@ -1,6 +1,3 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
-import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
 export async function exportVideo(
@@ -8,83 +5,137 @@ export async function exportVideo(
   wavUrl: string,
   onProgress?: (progress: number) => void
 ): Promise<void> {
-  const ffmpeg = new FFmpeg();
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (onProgress) onProgress(5);
+      
+      const audio = new Audio(wavUrl);
+      await new Promise((res) => {
+        audio.oncanplaythrough = res;
+        audio.load();
+      });
 
-  ffmpeg.on('progress', ({ progress }) => {
-    if (onProgress) onProgress(progress * 100);
-  });
+      const audioDuration = audio.duration;
+      const width = 1080;
+      const height = 1920;
 
-  // Load ffmpeg-core via unpkg
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Could not get canvas context");
 
-  // Get duration of audio
-  const audioDuration = await new Promise<number>((resolve, reject) => {
-    const audio = new Audio(wavUrl);
-    audio.onloadedmetadata = () => resolve(audio.duration);
-    audio.onerror = reject;
-  });
+      // Load all images first
+      if (onProgress) onProgress(10);
+      const loadedImages = await Promise.all(
+        scenes.map(async (scene) => {
+          if (!scene.image) return null;
+          return new Promise<HTMLImageElement | null>((res) => {
+            const img = new Image();
+            img.onload = () => res(img);
+            img.onerror = () => res(null);
+            img.src = scene.image!;
+          });
+        })
+      );
+      if (onProgress) onProgress(20);
 
-  // Write WAV file
-  await ffmpeg.writeFile('audio.wav', await fetchFile(wavUrl));
+      // Setup streams
+      const canvasStream = canvas.captureStream(30); // 30 FPS
+      
+      // We need to capture the audio from the element
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioContext.createMediaElementSource(audio);
+      const dest = audioContext.createMediaStreamDestination();
+      source.connect(dest);
+      source.connect(audioContext.destination); // Also play to speakers so we can hear progress?
+      
+      const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks()
+      ]);
 
-  // Determine duration for each scene
-  const numScenes = scenes.length;
-  const durationPerScene = audioDuration / numScenes;
+      const formats = [
+        'video/mp4;codecs=h264',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+      const mimeType = formats.find(f => MediaRecorder.isTypeSupported(f)) || 'video/webm';
+      const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
 
-  // Write images
-  let concatList = '';
-  for (let i = 0; i < numScenes; i++) {
-    const scene = scenes[i];
-    if (!scene.image) continue;
-    
-    // Convert base64 to buffer
-    const base64Data = scene.image.split(',')[1];
-    const binaryStr = atob(base64Data);
-    const len = binaryStr.length;
-    const bytes = new Uint8Array(len);
-    for (let j = 0; j < len; j++) {
-      bytes[j] = binaryStr.charCodeAt(j);
+      const recorder = new MediaRecorder(combinedStream, {
+        mimeType,
+        videoBitsPerSecond: 8000000 // 8Mbps for high quality
+      });
+
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `heartlines-production.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+
+      recorder.onerror = (e) => reject(e);
+
+      // Animation Loop
+      const numScenes = scenes.length;
+      const durationPerScene = audioDuration / numScenes;
+
+      const draw = () => {
+        const currentTime = audio.currentTime;
+        const progress = (currentTime / audioDuration) * 100;
+        if (onProgress) onProgress(20 + (progress * 0.8));
+
+        const sceneIndex = Math.min(
+          Math.floor(currentTime / durationPerScene),
+          numScenes - 1
+        );
+
+        const img = loadedImages[sceneIndex];
+
+        // Background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+
+        if (img) {
+          // Scale and crop (Cover)
+          const scale = Math.max(width / img.width, height / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          const x = (width - w) / 2;
+          const y = (height - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+        }
+
+        if (currentTime < audioDuration && !audio.paused) {
+          requestAnimationFrame(draw);
+        }
+      };
+
+      // Start recording
+      recorder.start();
+      await audio.play();
+      draw();
+
+      audio.onended = () => {
+        recorder.stop();
+        audioContext.close();
+      };
+
+    } catch (err) {
+      reject(err);
     }
-    
-    const fileName = `img${i}.jpg`;
-    await ffmpeg.writeFile(fileName, bytes);
-    
-    concatList += `file '${fileName}'\n`;
-    concatList += `duration ${durationPerScene.toFixed(3)}\n`;
-  }
-  
-  // Last frame has no duration so ffmpeg might hold it
-  if (numScenes > 0) {
-    concatList += `file 'img${numScenes - 1}.jpg'\n`;
-  }
-
-  await ffmpeg.writeFile('list.txt', concatList);
-
-  // Run FFmpeg command
-  // 1080p width at least, fit in. Let's do scale and crop or just 1080:1920 (TikTok format for vertical)
-  // Let's use standard vertical shorts format: crop/scale to 1080x1920
-  await ffmpeg.exec([
-    '-f', 'concat', 
-    '-safe', '0', 
-    '-i', 'list.txt',
-    '-i', 'audio.wav',
-    '-c:v', 'libx264',
-    '-preset', 'ultrafast',
-    '-r', '30', // Framerate
-    '-pix_fmt', 'yuv420p',
-    '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920', // Ensure nice vertical
-    '-c:a', 'aac',
-    '-b:a', '192k',
-    '-shortest', // Ensure video stops when shortest audio/video stream ends
-    'output.mp4'
-  ]);
-
-  const outputData = await ffmpeg.readFile('output.mp4');
-  
-  const videoBlob = new Blob([outputData], { type: 'video/mp4' });
-  saveAs(videoBlob, 'heartlines-production.mp4');
+  });
 }

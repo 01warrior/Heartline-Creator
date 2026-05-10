@@ -714,7 +714,7 @@ export function WorkflowApp() {
                     className="flex items-center gap-2 bg-[#C5A880] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-[#B3966D] transition-colors disabled:opacity-75 disabled:cursor-wait"
                   >
                     {isExportingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-                    {isExportingVideo ? `Exporting (${Math.round(exportProgress)}%)` : 'Export Video (.mp4)'}
+                    {isExportingVideo ? `Exporting (${Math.round(exportProgress)}%) ...` : 'Export Video'}
                   </button>
                   <button 
                     onClick={handleDownloadAllZip}
