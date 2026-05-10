@@ -11,7 +11,10 @@ export async function exportVideoFast(
     try {
       console.log('[MediaRecorder] Starting fast export...');
       const audio = new Audio();
-      audio.crossOrigin = 'anonymous';
+      // Remove crossOrigin for blob URLs to avoid CORS logic that causes 404
+      if (!wavUrl.startsWith('blob:') && !wavUrl.startsWith('data:')) {
+        audio.crossOrigin = 'anonymous';
+      }
 
       await new Promise<void>((res, rej) => {
         audio.onloadedmetadata = () => res();
@@ -35,7 +38,9 @@ export async function exportVideoFast(
 
       const loadedImages = await Promise.all(validScenes.map(async scene => {
          const img = new Image();
-         img.crossOrigin = 'anonymous';
+         if (!scene.image!.startsWith('blob:') && !scene.image!.startsWith('data:')) {
+            img.crossOrigin = 'anonymous';
+         }
          await new Promise((r, j) => {
             img.onload = r;
             img.onerror = j;
