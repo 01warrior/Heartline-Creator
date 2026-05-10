@@ -225,10 +225,10 @@ export async function playPcmAudio(base64Data: string, onProgress?: (percent: nu
       source.connect(audioContext.destination);
       
       const duration = audioBuffer.duration;
-      let startTime: number;
+      let startTime: number | undefined;
 
       const updateProgress = () => {
-        if (!startTime) return;
+        if (startTime === undefined) return;
         const elapsed = audioContext.currentTime - startTime;
         const progress = Math.min((elapsed / duration) * 100, 100);
         if (onProgress) onProgress(progress);
