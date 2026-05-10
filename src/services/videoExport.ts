@@ -51,7 +51,7 @@ export async function exportVideoFast(
          return img;
       }));
 
-      const stream = canvas.captureStream(30);
+      const stream = canvas.captureStream(60);
       let audioStream: MediaStream | null = null;
       try {
         const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -88,21 +88,30 @@ export async function exportVideoFast(
       };
 
       recorder.start();
+      
+      let startTime = 0;
+      audio.onplay = () => {
+        startTime = performance.now();
+      };
       audio.play();
 
-      const fps = 60;
-      const frameDuration = 1 / fps;
-      let currentTime = 0;
+      const renderFrame = (now: number) => {
+        if (!startTime) {
+          requestAnimationFrame(renderFrame);
+          return;
+        }
 
-      const renderFrame = () => {
-        if (currentTime >= audioDuration) {
+        const elapsed = (now - startTime) / 1000;
+        
+        if (elapsed >= audioDuration) {
+          console.log('[MediaRecorder] Export finished.');
           recorder.stop();
           audio.pause();
           return;
         }
 
-        const targetSceneIndex = Math.min(Math.max(0, Math.floor(currentTime / durationPerScene)), loadedImages.length - 1);
-        const sceneProgress = (currentTime % durationPerScene) / durationPerScene;
+        const targetSceneIndex = Math.min(Math.max(0, Math.floor(elapsed / durationPerScene)), loadedImages.length - 1);
+        const sceneProgress = (elapsed % durationPerScene) / durationPerScene;
         
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -110,9 +119,9 @@ export async function exportVideoFast(
         const img = loadedImages[targetSceneIndex];
         const scene = validScenes[targetSceneIndex];
         
-        // Image Animation (Subtle Zoom)
+        // Image Animation (Smooth Zoom)
         const baseScale = Math.max(canvas.width / img.width, canvas.height / img.height);
-        const currentScale = baseScale * (1 + sceneProgress * 0.08); // Slightly more visible zoom (8%)
+        const currentScale = baseScale * (1 + sceneProgress * 0.10); // 10% zoom for more impact
         
         const scaledWidth = img.width * currentScale;
         const scaledHeight = img.height * currentScale;
@@ -122,26 +131,32 @@ export async function exportVideoFast(
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
 
         // Subtitles Overlay
-        const sceneElapsed = currentTime % durationPerScene;
+        const sceneElapsed = elapsed % durationPerScene;
         const gradientAlpha = Math.min(1, sceneElapsed / 0.5);
         ctx.save();
         ctx.globalAlpha = gradientAlpha;
         const gradient = ctx.createLinearGradient(0, canvas.height * 0.7, 0, canvas.height);
         gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.8)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
         ctx.restore();
 
+        // 2. Draw Text (Fade In + Slide Up)
         ctx.save();
-        const textFadeIn = Math.min(1, sceneElapsed / 0.4);
+        const textFadeIn = Math.min(1, sceneElapsed / 0.6); // 0.6s fade for elegance
+        const slideUp = (1 - Math.pow(1 - textFadeIn, 3)) * 1; // Cubic ease out
+        const yOffset = (1 - slideUp) * 30; // 30px slide
+
         ctx.globalAlpha = textFadeIn;
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 10;
         ctx.fillStyle = 'white';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
-        ctx.font = 'bold 64px Inter, system-ui, sans-serif';
+        ctx.font = 'bold 72px Inter, system-ui, sans-serif'; // Slightly larger
         
-        const padding = 80;
+        const padding = 100;
         const maxWidth = canvas.width - (padding * 2);
         const words = scene.phrase.split(' ');
         let line = '';
@@ -159,8 +174,8 @@ export async function exportVideoFast(
         }
         lines.push(line);
 
-        const lineHeight = 80;
-        let currentY = canvas.height - 200; 
+        const lineHeight = 90;
+        let currentY = canvas.height - 220 + yOffset; 
         
         for (let i = lines.length - 1; i >= 0; i--) {
           ctx.fillText(lines[i].trim(), padding, currentY);
@@ -168,13 +183,11 @@ export async function exportVideoFast(
         }
         ctx.restore();
         
-        onProgress?.((currentTime / audioDuration) * 100);
-        
-        currentTime += frameDuration;
+        onProgress?.((elapsed / audioDuration) * 100);
         requestAnimationFrame(renderFrame);
       };
 
-      renderFrame();
+      requestAnimationFrame(renderFrame);
     } catch (e) {
       reject(e);
     }
