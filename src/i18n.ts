@@ -10,8 +10,9 @@ const resources = {
       },
       hero: {
         creatorsInfo: 'Over <1>{{count}} creators</1> use Heartlines',
-        title_words: 'Transform your words',
-        title_badge: 'into visual poetry',
+        title_words: 'Transform your words into visual',
+        title_badge: 'poetry',
+        title_after: '',
         subtitle: 'The first creative studio designed for emotional short vertical stories. Generate unique visuals and narrations from your quotes or poems with AI.',
         getStarted: 'Join the Studio',
       },
@@ -121,7 +122,8 @@ const resources = {
       hero: {
         creatorsInfo: 'Plus de <1>{{count}} créateurs</1> utilisent Heartlines',
         title_words: 'Transformez vos mots',
-        title_badge: 'en poésie visuelle',
+        title_badge: 'en poésie',
+        title_after: 'visuelle',
         subtitle: 'Le premier studio de création conçu pour les histoires courtes verticales émotionnelles. Générez des visuels et des narrations uniques à partir de vos citations ou poèmes avec l\'IA.',
         getStarted: 'Rejoindre le Studio',
       },

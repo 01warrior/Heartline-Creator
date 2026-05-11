@@ -66,6 +66,7 @@ export function LandingPage() {
               {t('hero.title_badge')}
             </span>
           </span>
+          {' '}{t('hero.title_after')}
         </h1>
         
         <p className="text-lg md:text-xl text-[#7A7570] max-w-2xl mx-auto mb-12 leading-relaxed">
