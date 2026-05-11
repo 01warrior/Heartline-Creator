@@ -201,7 +201,7 @@ export function LandingPage() {
           </p>
           <button 
             onClick={() => navigate('/studio')}
-            className="bg-[#C5A880] text-white px-8 md:px-10 py-4 rounded-2xl font-bold text-lg hover:bg-[#B3936A] hover:-translate-y-1 transition-all shadow-[0_8px_20px_rgb(197,168,128,0.3)] flex items-center gap-3 group relative z-10"
+            className="bg-[#C5A880] text-white px-6 md:px-10 py-4 rounded-2xl font-bold text-base md:text-lg whitespace-nowrap hover:bg-[#B3936A] hover:-translate-y-1 transition-all shadow-[0_8px_20px_rgb(197,168,128,0.3)] flex items-center gap-2 md:gap-3 group relative z-10"
           >
             {t('cta.button')}
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
