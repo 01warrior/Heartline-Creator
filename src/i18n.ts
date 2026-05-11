@@ -15,6 +15,7 @@ const resources = {
         title_after: '',
         subtitle: 'The first creative studio designed for emotional short vertical stories. Generate unique visuals and narrations from your quotes or poems with AI.',
         getStarted: 'Join the Studio',
+        watchDemo: 'Watch Demo',
       },
       features: {
         f1Title: 'Generative Poetry',
@@ -126,6 +127,7 @@ const resources = {
         title_after: 'visuelle',
         subtitle: 'Le premier studio de création conçu pour les histoires courtes verticales émotionnelles. Générez des visuels et des narrations uniques à partir de vos citations ou poèmes avec l\'IA.',
         getStarted: 'Rejoindre le Studio',
+        watchDemo: 'Voir la démo',
       },
       features: {
         f1Title: 'Poésie Générative',

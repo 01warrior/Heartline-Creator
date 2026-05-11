@@ -81,6 +81,12 @@ export function LandingPage() {
             {t('hero.getStarted')}
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
+          <button 
+            className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-[#E5E1DA] text-[#1A1A1A] rounded-2xl font-bold font-sans text-lg flex items-center justify-center gap-3 hover:border-[#C5A880] transition-all group"
+          >
+            <Play className="w-5 h-5 text-[#C5A880] fill-current" />
+            {t('hero.watchDemo')}
+          </button>
         </div>
       </section>
 
