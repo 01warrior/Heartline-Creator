@@ -7,6 +7,8 @@ import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, S
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useTranslation, Trans } from 'react-i18next';
+import Lottie from 'lottie-react';
+import loadingAnimation from '../assets/loading.json';
 
 type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
 
@@ -523,9 +525,13 @@ export function WorkflowApp() {
       {/* RIGHT PANEL: Player or Generating */}
       <div className="w-full lg:w-1/2 p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center bg-[#FDFCFB] h-auto lg:h-screen lg:overflow-y-auto">
          {rightPanelState === 'IDLE' && !scenes.some(s => s.image) && (
-           <div className="text-center opacity-40 py-20">
-             <ImageIcon className="w-16 h-16 mx-auto mb-4 text-[#A8A196]" />
-             <p className="font-sans font-medium text-lg text-[#7A7570]">{t('studio.masterpieceWait')}</p>
+           <div className="text-center py-20 animate-in fade-in zoom-in duration-500">
+             <div className="w-64 h-64 mx-auto mb-6">
+               <Lottie animationData={loadingAnimation} loop={true} />
+             </div>
+             <p className="font-sans font-medium text-lg text-[#7A7570] text-balance max-w-xs mx-auto">
+               {t('studio.masterpieceWait')}
+             </p>
            </div>
          )}
 
