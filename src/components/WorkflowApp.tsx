@@ -2,9 +2,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, audioDataToBlob } from '../services/gemini';
 import { exportVideo, exportVideoFast } from '../services/videoExport';
 import { ApiKeyInput } from './ApiKeyInput';
+import { LanguageSelector } from './LanguageSelector';
 import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube, ChevronDown } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { useTranslation, Trans } from 'react-i18next';
 
 type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
 
@@ -77,6 +79,7 @@ function CustomSelect({
 }
 
 export function WorkflowApp() {
+  const { t } = useTranslation();
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('GEMINI_API_KEY') || '');
   const [topic, setTopic] = useState('');
   const [imageStyle, setImageStyle] = useState('cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere');
@@ -370,29 +373,32 @@ export function WorkflowApp() {
           <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
             <div className="flex-1">
               <h1 className="text-3xl sm:text-4xl font-sans font-bold mb-4 leading-tight tracking-tight text-[#2D2D2D] flex flex-wrap items-center gap-3 sm:gap-4">
-                Heartlines 
+                {t('studio.editorTitle')} 
                 <span className="bg-[#1A1A1A] text-white px-3 sm:px-4 py-1 rounded-xl -rotate-2 font-normal text-2xl sm:text-3xl inline-block shadow-xl border border-[#333]">
-                  Editor
+                  {t('studio.editorBadge')}
                 </span>
                 <Feather className="w-5 h-5 sm:w-6 sm:h-6 text-[#C5A880] opacity-60" />
               </h1>
               <p className="text-[#7A7570] text-sm sm:text-base">
-                Set your topic and visual style, then craft your emotional story.
+                {t('studio.editorSubtitle')}
               </p>
             </div>
-            <button 
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-3 bg-white border border-[#E5E1DA] rounded-2xl text-[#A8A196] hover:text-[#C5A880] hover:border-[#C5A880] transition-all shadow-sm flex items-center gap-2 group"
-            >
-              <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
-              <span className="text-[10px] uppercase tracking-widest font-bold lg:hidden">Settings</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <LanguageSelector />
+              <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="h-[46px] px-4 bg-white border border-[#E5E1DA] rounded-2xl text-[#A8A196] hover:text-[#C5A880] hover:border-[#C5A880] transition-all shadow-sm flex items-center gap-2 group"
+              >
+                <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+                <span className="text-[10px] uppercase tracking-widest font-bold lg:hidden">{t('studio.settings')}</span>
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleGeneratePoem} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">Topic / Feeling</label>
+                <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">{t('studio.topicLabel')}</label>
                 <div className="relative group">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-[#E5E1DA] to-[#C5A880] rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
                   <div className="relative bg-white border border-[#E5E1DA] rounded-2xl overflow-hidden focus-within:border-[#C5A880] transition-colors shadow-sm">
@@ -400,7 +406,7 @@ export function WorkflowApp() {
                       required
                       value={topic}
                       onChange={e => setTopic(e.target.value)}
-                      placeholder="e.g. You Inside Me, finding love again..."
+                      placeholder={t('studio.topicPlaceholder')}
                       className="w-full bg-transparent p-4 pr-12 text-[#1A1A1A] text-base placeholder-[#A8A196] focus:outline-none resize-none min-h-[120px]"
                     />
                     <button
@@ -428,18 +434,18 @@ export function WorkflowApp() {
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">Visual Style Settings</label>
+                <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">{t('studio.styleLabel')}</label>
                 <div className="relative bg-white border border-[#E5E1DA] rounded-xl overflow-hidden focus-within:border-[#C5A880] transition-colors shadow-sm">
                    <input
                     type="text"
                     value={imageStyle}
                     onChange={e => setImageStyle(e.target.value)}
-                    placeholder="e.g. cinematic soft noir, 35mm film grain, warm melancholic lighting..."
+                    placeholder={t('studio.stylePlaceholder')}
                     className="w-full bg-transparent p-4 text-[#1A1A1A] text-sm placeholder-[#A8A196] focus:outline-none"
                   />
                 </div>
                 <p className="mt-2 text-[10px] text-[#A8A196] leading-relaxed italic">
-                  Tip: Describe colors (teal and orange), lighting (golden hour), and camera (35mm lens) for best consistency.
+                  {t('studio.styleTip')}
                 </p>
               </div>
             </div>
@@ -452,12 +458,12 @@ export function WorkflowApp() {
               {isGeneratingPoem ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Writing lines...</span>
+                  <span>{t('studio.btnWritingLines')}</span>
                 </>
               ) : (
                 <>
                   <Wand2 className="w-4 h-4" />
-                  <span>Generate Script</span>
+                  <span>{t('studio.btnGenerateScript')}</span>
                 </>
               )}
             </button>
@@ -469,7 +475,7 @@ export function WorkflowApp() {
                 <div className="w-8 h-8 rounded-full bg-[#C5A880]/10 flex items-center justify-center">
                   <Edit3 className="w-4 h-4 text-[#C5A880]" />
                 </div>
-                <h2 className="text-2xl font-sans font-semibold text-[#1A1A1A]">Review Sequence</h2>
+                <h2 className="text-2xl font-sans font-semibold text-[#1A1A1A]">{t('studio.reviewTitle')}</h2>
               </div>
               
               <div className="space-y-3 mb-8">
@@ -493,7 +499,7 @@ export function WorkflowApp() {
                 disabled={rightPanelState === 'GENERATING'}
                 className="w-full bg-[#1A1A1A] text-white font-bold rounded-full py-4 flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] hover:bg-black shadow-lg disabled:opacity-50"
               >
-                  <span>Start Production</span>
+                  <span>{t('studio.btnStartProduction')}</span>
                   <CheckCircle2 className="w-4 h-4" />
               </button>
             </div>
@@ -506,9 +512,9 @@ export function WorkflowApp() {
                     localStorage.removeItem('GEMINI_API_KEY');
                 }}
                 className="text-xs font-bold tracking-widest uppercase text-[#A8A196] hover:text-[#1A1A1A] transition-colors"
-                title="Sign out / Remove API Key"
+                title={t('studio.btnRemoveKey')}
              >
-                Remove API Key
+                {t('studio.btnRemoveKey')}
              </button>
           </div>
         </div>
@@ -519,12 +525,12 @@ export function WorkflowApp() {
          {rightPanelState === 'IDLE' && !scenes.some(s => s.image) && (
            <div className="text-center opacity-40 py-20">
              <ImageIcon className="w-16 h-16 mx-auto mb-4 text-[#A8A196]" />
-             <p className="font-sans font-medium text-lg text-[#7A7570]">Your masterpiece awaits...</p>
+             <p className="font-sans font-medium text-lg text-[#7A7570]">{t('studio.masterpieceWait')}</p>
            </div>
          )}
 
          {rightPanelState === 'GENERATING' && (
-           <div className="w-full max-w-sm mx-auto text-center py-10">
+           <div className="w-full max-sm mx-auto text-center py-10">
              <div className="relative w-20 h-20 mx-auto mb-8 text-[#C5A880]">
                 <Loader2 className="w-20 h-20 animate-spin opacity-20 relative z-10" strokeWidth={1} />
                 <div className="absolute inset-0 flex items-center justify-center -space-x-1">
@@ -533,9 +539,9 @@ export function WorkflowApp() {
                 </div>
              </div>
 
-             <h2 className="text-xl font-sans text-[#1A1A1A] font-semibold mb-3">Crafting the experience...</h2>
+             <h2 className="text-xl font-sans text-[#1A1A1A] font-semibold mb-3">{t('studio.craftingExperience')}</h2>
              <p className="text-[#7A7570] mb-8 mx-auto leading-relaxed text-sm">
-               Generating 4K moody images and rendering high-fidelity AI audio streams.
+               {t('studio.generatingDescription')}
              </p>
 
              <div className="h-1 bg-[#E5E1DA] rounded-full overflow-hidden w-full mx-auto shadow-inner">
@@ -545,7 +551,7 @@ export function WorkflowApp() {
                 />
              </div>
              <div className="mt-4 text-xs font-mono uppercase tracking-widest text-[#A8A196] font-bold">
-                {Math.floor(generationProgress)}% complete
+                {Math.floor(generationProgress)}% {t('studio.complete')}
              </div>
            </div>
          )}
@@ -555,7 +561,7 @@ export function WorkflowApp() {
              <div className="w-full max-w-[min(380px,75vh)] mx-auto flex flex-col h-full">
                <div className="flex items-center justify-between mb-4 shrink-0 px-2">
                    <div className="flex items-center gap-3">
-                     <h3 className="uppercase text-[10px] font-bold tracking-widest text-[#A8A196]">Preview Mode</h3>
+                     <h3 className="uppercase text-[10px] font-bold tracking-widest text-[#A8A196]">{t('studio.previewMode')}</h3>
                      <button 
                         onClick={() => setIsAssetsModalOpen(true)}
                         className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E1DA] rounded-lg text-[9px] font-bold uppercase tracking-tighter text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
@@ -566,7 +572,7 @@ export function WorkflowApp() {
                      <button 
                         onClick={() => setIsSettingsOpen(true)}
                         className="p-1 px-1.5 bg-white border border-[#E5E1DA] rounded-lg text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
-                        title="Settings"
+                        title={t('studio.settings')}
                      >
                         <Settings className="w-3 h-3" />
                      </button>
@@ -642,65 +648,67 @@ export function WorkflowApp() {
       {/* SETTINGS MODAL */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-[#FAF9F7] w-full max-w-md p-8 rounded-3xl border border-[#E5E1DA] shadow-2xl space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+           <div className="bg-[#FAF9F7] w-full max-w-2xl p-8 rounded-3xl border border-[#E5E1DA] shadow-2xl space-y-8 animate-in slide-in-from-bottom-4 duration-300">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">Settings</h2>
+                <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">{t('studio.settingsTitle')}</h2>
                 <button onClick={() => setIsSettingsOpen(false)} className="text-[#A8A196] hover:text-[#1A1A1A] transition-colors p-1">
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <CustomSelect 
-                  label="Modèle de Génération (Texte)"
+                  label={t('studio.labels.scriptModel')}
                   value={scriptModel}
                   onChange={setScriptModel}
                   options={[
-                    { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', description: 'Vitesse Ultra-rapide - Idéal pour des brouillons instantanés.' },
-                    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', description: 'Équilibre Performance - Le choix standard recommandé.' },
-                    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', description: 'Intelligence Avancée - Poésie complexe et nuances profondes.' },
-                    { value: 'gemini-2.5-flash-preview', label: 'Gemini 2.5 Flash', description: 'Modèle Hérité - Stable et éprouvé.' }
+                    { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', description: t('studio.labels.flashLiteDesc') },
+                    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', description: t('studio.labels.flashDesc') },
+                    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', description: t('studio.labels.proDesc') },
+                    { value: 'gemini-2.5-flash-preview', label: 'Gemini 2.5 Flash', description: t('studio.labels.legacyDesc') }
                   ]}
                 />
 
                 <CustomSelect 
-                  label="Modèle Visuel (Image)"
+                  label={t('studio.labels.imageModel')}
                   value={imageModel}
                   onChange={setImageModel}
                   options={[
-                    { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image', description: 'Nano Banana - Styles abstraits et générations rapides.' },
-                    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image', description: 'Haute Qualité - Textures photoréalistes et profondeur.' }
+                    { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image', description: t('studio.labels.nanoDesc') },
+                    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image', description: t('studio.labels.highResDesc') }
                   ]}
                 />
 
                 <CustomSelect 
-                  label="Modèle Vocal (TTS)"
+                  label={t('studio.labels.ttsModel')}
                   value={ttsModel}
                   onChange={setTtsModel}
                   options={[
-                    { value: 'gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS', description: 'Recommandé - Voix naturelles et expressives.' },
-                    { value: 'gemini-3.1-pro-tts-preview', label: 'Gemini 3.1 Pro TTS', description: 'Qualité Studio - Clarté cristalline.' }
+                    { value: 'gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS', description: t('studio.labels.ttsFlashDesc') },
+                    { value: 'gemini-3.1-pro-tts-preview', label: 'Gemini 3.1 Pro TTS', description: t('studio.labels.ttsProDesc') }
                   ]}
                 />
 
                 <CustomSelect 
-                  label="Voix de l'IA (Ton)"
+                  label={t('studio.labels.voiceTone')}
                   value={selectedVoice}
                   onChange={setSelectedVoice}
                   options={AVAILABLE_VOICES.map(voice => ({
                     value: voice,
                     label: voice,
-                    description: voice === 'Kore' || voice === 'Aoede' ? 'Féminin - Douce et mélodique' : 'Masculin - Profonde et posée'
+                    description: voice === 'Kore' || voice === 'Aoede' ? t('studio.labels.femSoft') : t('studio.labels.maleDeep')
                   }))}
                 />
               </div>
 
-              <button 
-                onClick={() => setIsSettingsOpen(false)}
-                className="w-full bg-[#1A1A1A] text-white font-bold py-4 rounded-full transition-transform active:scale-95"
-              >
-                Save Configuration
-              </button>
+              <div className="pt-4 mt-4 border-t border-[#E5E1DA]">
+                <button
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="w-full bg-[#1A1A1A] text-white font-bold py-4 rounded-full transition-transform active:scale-95 hover:bg-black shadow-lg"
+                >
+                  {t('studio.btnSaveConfig')}
+                </button>
+              </div>
            </div>
         </div>
       )}
@@ -710,8 +718,8 @@ export function WorkflowApp() {
            <div className="bg-[#FAF9F7] w-full max-w-lg p-8 rounded-3xl border border-[#E5E1DA] shadow-2xl space-y-6 animate-in zoom-in-95 duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">AI Suggestions</h2>
-                  <p className="text-[#A8A196] text-xs font-bold uppercase tracking-widest mt-1">Pick a theme for your next masterpiece</p>
+                  <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">{t('studio.aiSuggestions')}</h2>
+                  <p className="text-[#A8A196] text-xs font-bold uppercase tracking-widest mt-1">{t('studio.themePick')}</p>
                 </div>
                 <button onClick={() => setIsSuggestionsModalOpen(false)} className="text-[#A8A196] hover:text-[#1A1A1A] transition-colors p-1">
                   <X className="w-6 h-6" />
@@ -750,7 +758,7 @@ export function WorkflowApp() {
                 className="w-full py-4 border border-dashed border-[#C5A880] text-[#C5A880] rounded-2xl font-bold text-sm hover:bg-[#C5A880]/5 transition-colors flex items-center justify-center gap-2"
               >
                 {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Feather className="w-4 h-4" />}
-                Generate more ideas
+                {t('studio.btnMoreIdeas')}
               </button>
            </div>
         </div>
@@ -773,19 +781,21 @@ export function WorkflowApp() {
               </div>
 
               <div className="bg-[#FAF9F7] p-4 rounded-2xl border border-[#E5E1DA]">
-                <p className="text-[11px] font-bold text-[#A8A196] uppercase tracking-wider mb-2">How to solve this?</p>
+                <p className="text-[11px] font-bold text-[#A8A196] uppercase tracking-wider mb-2">{t('studio.howToSolve')}</p>
                 <ul className="text-xs text-[#7A7570] space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">1</span>
-                    Wait 60 seconds before trying again (Free Tier limits).
+                    {t('studio.solve1')}
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">2</span>
-                    Try a different model (Flash models are faster but have stricter limits).
+                    {t('studio.solve2')}
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">3</span>
-                    Open the **Library** to download assets already generated!
+                    <Trans i18nKey="studio.solve3">
+                      Ouvrez la **Bibliothèque** pour télécharger les éléments déjà générés !
+                    </Trans>
                   </li>
                 </ul>
               </div>
@@ -794,7 +804,7 @@ export function WorkflowApp() {
                 onClick={() => setError(null)}
                 className="w-full py-4 bg-[#1A1A1A] text-white rounded-full font-bold text-sm hover:bg-black transition-colors"
               >
-                Understood
+                {t('studio.btnUnderstood')}
               </button>
            </div>
         </div>
@@ -806,8 +816,8 @@ export function WorkflowApp() {
            <div className="bg-[#FAF9F7] w-full max-w-4xl max-h-[85vh] p-8 rounded-[3rem] border border-[#E5E1DA] shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-3xl font-sans font-bold text-[#1A1A1A]">Media Library</h2>
-                  <p className="text-[#A8A196] text-sm mt-1">All assets generated for this production</p>
+                  <h2 className="text-3xl font-sans font-bold text-[#1A1A1A]">{t('studio.mediaLibrary')}</h2>
+                  <p className="text-[#A8A196] text-sm mt-1">{t('studio.librarySubtitle')}</p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex bg-white rounded-full p-1 border border-[#E5E1DA] shadow-sm">
@@ -815,18 +825,18 @@ export function WorkflowApp() {
                       onClick={handleExportFast}
                       disabled={isExportingVideo}
                       className="flex items-center gap-2 bg-[#C5A880] text-white px-4 py-2 rounded-full text-xs font-bold tracking-wide hover:bg-[#B3966D] transition-colors disabled:opacity-75 disabled:cursor-wait"
-                      title="Fast export using browser recording (WebM/MP4)"
+                      title={t('studio.fastExportTitle')}
                     >
                       {isExportingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-                      {isExportingVideo ? `Fast (${Math.round(exportProgress)}%)` : 'Fast Export'}
+                      {isExportingVideo ? `Fast ${Math.round(exportProgress)}%` : t('studio.btnFastExport')}
                     </button>
                     <button 
                       onClick={handleExportMP4}
                       disabled={isExportingVideo}
                       className="flex items-center gap-2 bg-transparent text-[#1A1A1A] px-4 py-2 rounded-full border border-transparent text-xs font-bold tracking-wide hover:bg-[#F5F2EE] transition-colors disabled:opacity-50"
-                      title="High Quality export using FFmpeg (MP4) - Slower"
+                      title={t('studio.hqExportTitle')}
                     >
-                      HQ (FFmpeg)
+                      {t('studio.btnHqExport')}
                     </button>
                   </div>
                   <button 
@@ -835,7 +845,7 @@ export function WorkflowApp() {
                     className="flex items-center gap-2 bg-[#1A1A1A] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-black transition-colors disabled:opacity-50"
                   >
                     <Archive className="w-4 h-4" />
-                    Download All (ZIP)
+                    {t('studio.btnDownloadAll')}
                   </button>
                   <button onClick={() => setIsAssetsModalOpen(false)} disabled={isExportingVideo} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors disabled:opacity-50">
                     <X className="w-6 h-6" />
