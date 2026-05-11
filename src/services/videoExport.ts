@@ -291,7 +291,7 @@ export async function exportVideo(
   // 5. EXPORT
   const data = await ffmpeg.readFile('output.mp4');
   const blob = new Blob(
-    [data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer)],
+    [data instanceof Uint8Array ? data : new Uint8Array(data as unknown as ArrayBuffer)],
     { type: 'video/mp4' }
   );
   

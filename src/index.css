@@ -4,4 +4,16 @@
 @theme {
   --font-sans: "Rubik", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Rubik", ui-serif, system-ui, serif;
+
+  --animate-marquee: marquee 60s linear infinite;
+  --animate-marquee-reverse: marquee-reverse 60s linear infinite;
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes marquee-reverse {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0); }
+  }
 }

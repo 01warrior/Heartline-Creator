@@ -105,7 +105,7 @@ export async function generateTopicSuggestions(apiKey: string, model: string = '
     return JSON.parse(rawText);
   } catch (e) {
     console.error("Failed to parse suggestions", e);
-    return [response.text().replace(/"/g, '').trim()];
+    return [(response.text || "").replace(/"/g, '').trim()];
   }
 }
 
