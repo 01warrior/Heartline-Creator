@@ -46,7 +46,8 @@ const resources = {
         description: 'Aesthetic video generator. Please enter your Gemini API Key. It will be stored locally in your browser.',
         label: 'Gemini API Key',
         placeholder: 'AIzaSy...',
-        submit: 'Start Editing'
+        submit: 'Start Editing',
+        premium: 'Become Premium'
       },
       studio: {
         editorTitle: 'Heartlines',
@@ -148,7 +149,8 @@ const resources = {
         description: 'Générateur de vidéos esthétiques. Veuillez entrer votre clé API Gemini. Elle sera stockée localement dans votre navigateur.',
         label: 'Clé API Gemini',
         placeholder: 'AIzaSy...',
-        submit: 'Commencer l\'Édition'
+        submit: 'Commencer l\'Édition',
+        premium: 'Devenir Premium'
       },
       studio: {
         editorTitle: 'Heartlines',

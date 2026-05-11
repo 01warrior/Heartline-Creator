@@ -48,6 +48,13 @@ export function ApiKeyInput({ onKeySubmit }: ApiKeyInputProps) {
           >
             {t('apiKey.submit')}
           </button>
+          
+          <button
+            type="button"
+            className="w-full mt-2 bg-transparent border border-[#E5E1DA] text-[#A8A196] text-sm font-bold py-3 rounded-full transition-all cursor-not-allowed opacity-60"
+          >
+            {t('apiKey.premium')}
+          </button>
         </form>
       </div>
     </div>
