@@ -60,14 +60,12 @@ export function LandingPage() {
         </div>
         
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-sans font-bold mb-8 leading-[1.1] tracking-tight text-[#2D2D2D] max-w-5xl mx-auto">
-          <Trans i18nKey="hero.title">
-            Mettez vos mots <br className="hidden md:block" />
-            <span className="relative inline-block mt-2">
-              <span className="bg-[#1A1A1A] text-white px-6 py-2 rounded-2xl -rotate-2 font-normal inline-block shadow-2xl border-4 border-[#FDFCFB]">
-                en images
-              </span>
+          {t('hero.title_words')} <br className="hidden md:block" />
+          <span className="relative inline-block mt-2">
+            <span className="bg-[#1A1A1A] text-white px-6 py-2 rounded-2xl -rotate-2 font-normal inline-block shadow-2xl border-4 border-[#FDFCFB]">
+              {t('hero.title_badge')}
             </span>
-          </Trans>
+          </span>
         </h1>
         
         <p className="text-lg md:text-xl text-[#7A7570] max-w-2xl mx-auto mb-12 leading-relaxed">

@@ -411,26 +411,32 @@ export function WorkflowApp() {
                       placeholder={t('studio.topicPlaceholder')}
                       className="w-full bg-transparent p-4 pr-12 text-[#1A1A1A] text-base placeholder-[#A8A196] focus:outline-none resize-none min-h-[120px]"
                     />
-                    <button
-                      type="button"
-                      disabled={isSuggesting}
-                      onClick={async () => {
-                        try {
-                          setIsSuggesting(true);
-                          const suggestionsList = await generateTopicSuggestions(apiKey, scriptModel);
-                          setSuggestions(suggestionsList);
-                          setIsSuggestionsModalOpen(true);
-                        } catch (e) {
-                          setError(parseGeminiError(e));
-                        } finally {
-                          setIsSuggesting(false);
-                        }
-                      }}
-                      className="absolute bottom-3 right-3 p-2 bg-[#FAF9F7] text-[#A8A196] hover:text-[#C5A880] rounded-xl transition-all shadow-sm border border-[#E5E1DA] disabled:opacity-50"
-                      title="Suggest a feeling (AI)"
-                    >
-                      <Feather className={`w-4 h-4 ${isSuggesting ? 'animate-pulse' : ''}`} />
-                    </button>
+                    <div className="absolute bottom-3 right-3 group">
+                      <button
+                        type="button"
+                        disabled={isSuggesting}
+                        onClick={async () => {
+                          try {
+                            setIsSuggesting(true);
+                            const suggestionsList = await generateTopicSuggestions(apiKey, scriptModel);
+                            setSuggestions(suggestionsList);
+                            setIsSuggestionsModalOpen(true);
+                          } catch (e) {
+                            setError(parseGeminiError(e));
+                          } finally {
+                            setIsSuggesting(false);
+                          }
+                        }}
+                        className="p-2 bg-[#FAF9F7] text-[#A8A196] hover:text-[#C5A880] rounded-xl transition-all shadow-sm border border-[#E5E1DA] disabled:opacity-50"
+                        aria-label={t('studio.tooltipSuggest')}
+                      >
+                        <Feather className={`w-4 h-4 ${isSuggesting ? 'animate-pulse' : ''}`} />
+                      </button>
+                      <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#1A1A1A] text-white text-xs font-medium rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-xl">
+                        {t('studio.tooltipSuggest')}
+                        <div className="absolute -bottom-1 right-3.5 w-2 h-2 bg-[#1A1A1A] rotate-45 transform"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
