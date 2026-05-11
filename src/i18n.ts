@@ -39,6 +39,11 @@ const resources = {
           { name: '@TechReview', platform: 'TikTok', text: 'The voice synthesis is the most natural I\'ve tested.' }
         ]
       },
+      cta: {
+        title: 'Ready to tell your story?',
+        subtitle: 'Join the creators who are already redefining short emotional videos.',
+        button: 'Start creating'
+      },
       footer: {
         rights: '© 2024 - 2026 Heartlines. All rights reserved.'
       },
@@ -143,6 +148,11 @@ const resources = {
           { name: '@VideoMaster', platform: 'YouTube', text: 'L\'export 4K est d\'une propreté incroyable.' },
           { name: '@TechReview', platform: 'TikTok', text: 'La voix de synthèse est la plus naturelle que j\'ai testée.' }
         ]
+      },
+      cta: {
+        title: 'Prêt à raconter votre histoire ?',
+        subtitle: 'Rejoignez les créateurs qui redéfinissent déjà la vidéo courte émotionnelle.',
+        button: 'Commencer la création'
       },
       footer: {
         rights: '© 2024 - 2026 Heartlines. Tous droits réservés.'

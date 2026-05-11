@@ -180,6 +180,28 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* CTA */}
+      <section className="w-full max-w-7xl mx-auto px-6 py-12 md:py-20 relative z-10">
+        <div className="bg-[#1A1A1A] rounded-[2.5rem] border-[3px] border-[#FDFCFB] shadow-xl px-8 py-10 md:px-20 md:py-16 text-center flex flex-col items-center relative overflow-hidden transform -rotate-1">
+          <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-[#C5A880] blur-[120px] opacity-[0.15] pointer-events-none rounded-full" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-64 h-64 bg-[#FDFCFB] blur-[100px] opacity-[0.05] pointer-events-none rounded-full" />
+          
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight relative z-10">
+            {t('cta.title')}
+          </h2>
+          <p className="text-lg md:text-xl text-[#E5E1DA] opacity-80 max-w-2xl mx-auto mb-10 relative z-10">
+            {t('cta.subtitle')}
+          </p>
+          <button 
+            onClick={() => navigate('/studio')}
+            className="bg-[#C5A880] text-white px-8 md:px-10 py-4 rounded-2xl font-bold text-lg hover:bg-[#B3936A] hover:-translate-y-1 transition-all shadow-[0_8px_20px_rgb(197,168,128,0.3)] flex items-center gap-3 group relative z-10"
+          >
+            {t('cta.button')}
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="w-full max-w-7xl mx-auto px-6 py-12 mt-12 border-t border-[#E5E1DA] flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
         <div className="flex items-center gap-2">
