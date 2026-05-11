@@ -367,24 +367,25 @@ export function WorkflowApp() {
       <div className="w-full lg:w-1/2 p-6 lg:p-12 overflow-y-auto border-b lg:border-b-0 lg:border-r border-[#E5E1DA] h-auto lg:h-screen transition-all">
         <div className="max-w-xl mx-auto space-y-12">
           
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-4xl font-sans font-bold mb-4 leading-tight tracking-tight text-[#2D2D2D] flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+            <div className="flex-1">
+              <h1 className="text-3xl sm:text-4xl font-sans font-bold mb-4 leading-tight tracking-tight text-[#2D2D2D] flex flex-wrap items-center gap-3 sm:gap-4">
                 Heartlines 
-                <span className="bg-[#1A1A1A] text-white px-4 py-1 rounded-xl -rotate-2 font-normal text-3xl inline-block shadow-xl border border-[#333]">
+                <span className="bg-[#1A1A1A] text-white px-3 sm:px-4 py-1 rounded-xl -rotate-2 font-normal text-2xl sm:text-3xl inline-block shadow-xl border border-[#333]">
                   Editor
                 </span>
-                <Feather className="w-6 h-6 text-[#C5A880] opacity-60" />
+                <Feather className="w-5 h-5 sm:w-6 sm:h-6 text-[#C5A880] opacity-60" />
               </h1>
-              <p className="text-[#7A7570] text-base">
+              <p className="text-[#7A7570] text-sm sm:text-base">
                 Set your topic and visual style, then craft your emotional story.
               </p>
             </div>
             <button 
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 bg-white border border-[#E5E1DA] rounded-full text-[#A8A196] hover:text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
+              className="p-3 bg-white border border-[#E5E1DA] rounded-2xl text-[#A8A196] hover:text-[#C5A880] hover:border-[#C5A880] transition-all shadow-sm flex items-center gap-2 group"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+              <span className="text-[10px] uppercase tracking-widest font-bold lg:hidden">Settings</span>
             </button>
           </div>
 
@@ -514,20 +515,8 @@ export function WorkflowApp() {
       </div>
 
       {/* RIGHT PANEL: Player or Generating */}
-      <div className="w-full lg:w-1/2 p-6 lg:p-8 flex flex-col items-center justify-center bg-[#FDFCFB] relative h-auto lg:h-screen lg:overflow-y-auto">
-         {(rightPanelState !== 'IDLE' || scenes.some(s => s.image)) && (
-           <div className="absolute top-6 right-6 z-20 flex gap-2">
-             <button 
-                onClick={() => setIsAssetsModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md border border-[#E5E1DA] rounded-full text-xs font-bold uppercase tracking-widest text-[#1A1A1A] hover:bg-white hover:border-[#C5A880] transition-all shadow-sm"
-             >
-                <ImageIcon className="w-4 h-4" />
-                Library
-             </button>
-           </div>
-         )}
-
-         {rightPanelState === 'IDLE' && (
+      <div className="w-full lg:w-1/2 p-4 sm:p-6 lg:p-8 flex flex-col items-center justify-center bg-[#FDFCFB] h-auto lg:h-screen lg:overflow-y-auto">
+         {rightPanelState === 'IDLE' && !scenes.some(s => s.image) && (
            <div className="text-center opacity-40 py-20">
              <ImageIcon className="w-16 h-16 mx-auto mb-4 text-[#A8A196]" />
              <p className="font-sans font-medium text-lg text-[#7A7570]">Your masterpiece awaits...</p>
@@ -565,7 +554,23 @@ export function WorkflowApp() {
            <div className="w-full h-full max-h-[90vh] flex flex-col items-center justify-center py-4">
              <div className="w-full max-w-[min(380px,75vh)] mx-auto flex flex-col h-full">
                <div className="flex items-center justify-between mb-4 shrink-0 px-2">
-                   <h3 className="uppercase text-[10px] font-bold tracking-widest text-[#A8A196]">Preview Mode</h3>
+                   <div className="flex items-center gap-3">
+                     <h3 className="uppercase text-[10px] font-bold tracking-widest text-[#A8A196]">Preview Mode</h3>
+                     <button 
+                        onClick={() => setIsAssetsModalOpen(true)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E1DA] rounded-lg text-[9px] font-bold uppercase tracking-tighter text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
+                     >
+                        <Archive className="w-3 h-3 text-[#C5A880]" />
+                        Library
+                     </button>
+                     <button 
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="p-1 px-1.5 bg-white border border-[#E5E1DA] rounded-lg text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
+                        title="Settings"
+                     >
+                        <Settings className="w-3 h-3" />
+                     </button>
+                   </div>
                    <div className="text-[10px] font-mono font-bold text-[#C5A880]">{currentSceneIndex + 1} / {scenes.length}</div>
                </div>
 
