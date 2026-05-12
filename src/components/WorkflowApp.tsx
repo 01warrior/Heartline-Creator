@@ -3,7 +3,7 @@ import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAud
 import { exportVideo, exportVideoFast } from '../services/videoExport';
 import { ApiKeyInput } from './ApiKeyInput';
 import { LanguageSelector } from './LanguageSelector';
-import { Loader2, Play, CheckCircle2, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube, ChevronDown } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, Check, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube, ChevronDown } from 'lucide-react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useTranslation, Trans } from 'react-i18next';
@@ -79,6 +79,33 @@ function CustomSelect({
     </div>
   );
 }
+
+const STYLE_PRESETS = [
+  {
+    id: 'stickman',
+    label: 'Stickman Minimal',
+    image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='white'/%3E%3Ccircle cx='50' cy='25' r='10' stroke='black' stroke-width='4' fill='none'/%3E%3Cline x1='50' y1='35' x2='50' y2='70' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='50' x2='30' y2='40' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='50' x2='70' y2='40' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='70' x2='35' y2='95' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='70' x2='65' y2='95' stroke='black' stroke-width='4'/%3E%3C/svg%3E",
+    prompt: `Stickman Base Design Prompt that matches the mood and theme of the story. This base prompt should include: Overall vibe (motivational, funny, stressed, calm, etc.) Character style (simple black stickman, rounded head, clean lines) Consistent features (expression style, line thickness, minimal design) White or minimal background style Format: Stickman Base Prompt: "Simple black stickman with a round head, clean smooth lines, minimalist style, expressive face, consistent proportions, modern flat illustration, minimal white background, soft emotional tone matching the story."`
+  },
+  {
+    id: 'cinematic',
+    label: 'Cinematic Noir',
+    image: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&h=400&fit=crop',
+    prompt: 'cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere'
+  },
+  {
+    id: 'watercolor',
+    label: 'Aquarelle Onirique',
+    image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=400&fit=crop',
+    prompt: 'dreamy soft watercolor illustration, bleeding colors, ethereal atmosphere, delicate brushstrokes, emotional lighting, soft pastel palette, artistic and poetic vibe, minimalist composition'
+  },
+  {
+    id: 'comic',
+    label: 'Style Comics',
+    image: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&h=400&fit=crop',
+    prompt: 'vibrant comic book style, bold ink lines, halftone patterns, dynamic composition, saturated colors, classic superhero aesthetic, high contrast, expressive action'
+  }
+];
 
 export function WorkflowApp() {
   const { t } = useTranslation();
@@ -452,7 +479,41 @@ export function WorkflowApp() {
                     className="w-full bg-transparent p-4 text-[#1A1A1A] text-sm placeholder-[#A8A196] focus:outline-none"
                   />
                 </div>
-                <p className="mt-2 text-[10px] text-[#A8A196] leading-relaxed italic">
+                
+                <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {STYLE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setImageStyle(preset.prompt)}
+                      className="group relative flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all hover:border-[#C5A880] focus:outline-none"
+                      style={{
+                        borderColor: imageStyle === preset.prompt ? '#C5A880' : '#E5E1DA',
+                        backgroundColor: imageStyle === preset.prompt ? '#FDFCFB' : 'white',
+                      }}
+                    >
+                      <div className="w-full aspect-square rounded-lg overflow-hidden border border-[#E5E1DA]">
+                        <img 
+                          src={preset.image} 
+                          alt={preset.label}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: imageStyle === preset.prompt ? '#C5A880' : '#7A7570' }}>
+                        {preset.label}
+                      </span>
+                      
+                      {imageStyle === preset.prompt && (
+                        <div className="absolute top-1 right-1 bg-[#C5A880] text-white p-0.5 rounded-full shadow-sm">
+                          <Check className="w-3 h-3" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-3 text-[10px] text-[#A8A196] leading-relaxed italic">
                   {t('studio.styleTip')}
                 </p>
               </div>
@@ -598,6 +659,7 @@ export function WorkflowApp() {
                         <img 
                           src={scenes[currentSceneIndex].image} 
                           alt="scene background" 
+                          referrerPolicy="no-referrer"
                           className="w-full h-full object-cover transition-transform duration-[4000ms] ease-linear scale-100"
                           style={{ transform: isPlaying ? 'scale(1.1)' : 'scale(1)' }} 
                         />
@@ -874,7 +936,7 @@ export function WorkflowApp() {
                       <div key={idx} className="group relative bg-white border border-[#E5E1DA] rounded-3xl overflow-hidden shadow-sm aspect-square">
                         {scene.image ? (
                           <>
-                            <img src={scene.image} alt="" className="w-full h-full object-cover" />
+                            <img src={scene.image} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
                               <p className="text-white text-[10px] mb-4 line-clamp-3 leading-relaxed">{scene.phrase}</p>
                               <button 
