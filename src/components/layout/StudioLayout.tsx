@@ -70,12 +70,15 @@ export function StudioLayout() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden relative" style={{ minWidth: 0 }}>
+      <div
+        className="flex-1 overflow-y-auto md:overflow-hidden relative pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0"
+        style={{ minWidth: 0 }}
+      >
         <Outlet />
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden flex items-center justify-around bg-white border-t border-[#E5E1DA] shrink-0 px-2 py-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-white border-t border-[#E5E1DA] px-2 py-2 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
