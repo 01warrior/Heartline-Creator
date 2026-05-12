@@ -135,7 +135,7 @@ export function StudioSettingsPanel({
       </div>
 
       {showApiKeyActions && (
-        <div className="pt-6 border-t border-[#E5E1DA]">
+        <div className="pt-6">
           <button
             onClick={clearApiKey}
             className="text-xs font-bold tracking-widest uppercase text-[#A8A196] hover:text-[#1A1A1A] transition-colors"
@@ -146,7 +146,7 @@ export function StudioSettingsPanel({
       )}
 
       {onClose && (
-        <div className="pt-4 mt-4 border-t border-[#E5E1DA]">
+        <div className="pt-4 mt-4">
           <button
             onClick={onClose}
             className="w-full bg-[#1A1A1A] text-white font-bold py-4 rounded-full transition-transform active:scale-95 hover:bg-black shadow-lg"
