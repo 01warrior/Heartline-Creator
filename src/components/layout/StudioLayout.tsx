@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Sidebar as SidebarIcon, 
-  Home, 
-  Video, 
-  FolderLock, 
-  Settings 
-} from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Menu01Icon,
+  Home01Icon,
+  VideoIcon,
+  FolderIcon,
+  CogIcon
+} from '@hugeicons/core-free-icons';
 
 export function StudioLayout() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -14,9 +15,10 @@ export function StudioLayout() {
   const navigate = useNavigate();
 
   const NAV_ITEMS = [
-    { path: '/studio', label: 'Créer', icon: Home },
-    { path: '/studio/videos', label: 'Mes Vidéos', icon: Video },
-    { path: '/studio/assets', label: 'Mes Assets', icon: FolderLock },
+    { path: '/studio', label: 'Créer', icon: Home01Icon },
+    { path: '/studio/videos', label: 'Mes Vidéos', icon: VideoIcon },
+    { path: '/studio/assets', label: 'Mes Assets', icon: FolderIcon },
+    { path: '/studio/settings', label: 'Parametres', icon: CogIcon },
   ];
 
   return (
@@ -27,12 +29,15 @@ export function StudioLayout() {
           isExpanded ? 'w-64' : 'w-20'
         }`}
       >
-        <div className="h-20 flex items-center justify-center border-b border-[#E5E1DA]">
+        <div className="h-20 flex items-center justify-between px-4 border-b border-[#E5E1DA]">
+          {isExpanded && (
+            <span className="font-bold text-lg tracking-wide text-[#1A1A1A]">Studio</span>
+          )}
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-2 rounded-xl text-[#A8A196] hover:bg-[#F5F2EE] hover:text-[#1A1A1A] transition-colors"
           >
-            <SidebarIcon className="w-6 h-6" />
+            <HugeiconsIcon icon={Menu01Icon} size={24} color="currentColor" strokeWidth={2.25} />
           </button>
         </div>
         
@@ -54,7 +59,7 @@ export function StudioLayout() {
                 }`}
                 title={!isExpanded ? item.label : undefined}
               >
-                <Icon className={`w-6 h-6 shrink-0 ${isActive ? 'text-white' : 'text-current'}`} />
+                <HugeiconsIcon icon={Icon} size={24} color="currentColor" strokeWidth={2.25} className="shrink-0" />
                 {isExpanded && (
                   <span className="font-bold tracking-wide truncate">{item.label}</span>
                 )}
@@ -86,7 +91,7 @@ export function StudioLayout() {
               }`}
             >
               <div className={`p-1.5 rounded-lg transition-all ${isActive ? 'bg-[#1A1A1A] text-white shadow-md' : 'bg-transparent'}`}>
-                <Icon className="w-5 h-5 shrink-0" strokeWidth={isActive ? 2.5 : 2} />
+                <HugeiconsIcon icon={Icon} size={20} color="currentColor" strokeWidth={2.25} />
               </div>
               <span className={`text-[10px] sm:text-xs font-semibold tracking-wide ${isActive ? 'text-[#1A1A1A]' : 'text-[#A8A196]'}`}>{item.label}</span>
             </button>

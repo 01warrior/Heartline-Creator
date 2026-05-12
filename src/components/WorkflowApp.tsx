@@ -1,14 +1,19 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, AVAILABLE_VOICES, audioDataToBlob } from '../services/gemini';
+import React, { useState, useEffect } from 'react';
+import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, audioDataToBlob } from '../services/gemini';
 import { exportVideo, exportVideoFast } from '../services/videoExport';
 import { ApiKeyInput } from './ApiKeyInput';
+import { StudioSettingsPanel } from './StudioSettingsPanel';
+import { useStudioSettings } from './StudioSettingsContext';
 import { LanguageSelector } from './LanguageSelector';
-import { Loader2, Play, CheckCircle2, Check, Wand2, Edit3, Image as ImageIcon, Music, Settings, X, Feather, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube, ChevronDown } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, Check, Wand2, Edit3, Image as ImageIcon, Music, X, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { CogIcon, FeatherIcon } from '@hugeicons/core-free-icons';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { useTranslation, Trans } from 'react-i18next';
 import Lottie from 'lottie-react';
 import loadingAnimation from '../assets/loading.json';
+import cinematicImg from '../assets/cinematic.png';
 
 type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
 
@@ -16,68 +21,6 @@ type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
 interface Scene {
   phrase: string;
   image?: string;
-}
-
-function CustomSelect({ 
-  label, 
-  value, 
-  options, 
-  onChange 
-}: { 
-  label: string, 
-  value: string, 
-  options: { value: string, label: string, description?: string }[], 
-  onChange: (val: string) => void 
-}) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const selectedOption = options.find(o => o.value === value) || options[0];
-
-  return (
-    <div className="space-y-3 relative">
-      <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196]">{label}</label>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white border border-[#E5E1DA] p-4 rounded-2xl text-left flex items-center justify-between hover:border-[#C5A880] transition-all shadow-sm group"
-      >
-        <div className="flex flex-col">
-          <span className="text-sm font-bold text-[#1A1A1A]">{selectedOption.label}</span>
-          {selectedOption.description && (
-            <span className="text-[10px] text-[#A8A196] leading-tight mt-0.5">{selectedOption.description}</span>
-          )}
-        </div>
-        <ChevronDown className={`w-4 h-4 text-[#A8A196] group-hover:text-[#C5A880] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-[60]" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E5E1DA] rounded-2xl shadow-2xl z-[70] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="max-h-64 overflow-y-auto">
-              {options.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2.5 hover:bg-[#FAF9F7] transition-colors border-b border-[#F5F2EE] last:border-0 flex flex-col ${value === option.value ? 'bg-[#C5A880]/5' : ''}`}
-                >
-                  <span className={`text-xs font-bold ${value === option.value ? 'text-[#C5A880]' : 'text-[#1A1A1A]'}`}>
-                    {option.label}
-                  </span>
-                  {option.description && (
-                    <span className="text-[10px] text-[#A8A196] leading-tight mt-0.5">{option.description}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 const STYLE_PRESETS = [
@@ -90,7 +33,7 @@ const STYLE_PRESETS = [
   {
     id: 'cinematic',
     label: 'Cinematic Noir',
-    image: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&h=400&fit=crop',
+    image: cinematicImg,
     prompt: 'cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere'
   },
   {
@@ -109,7 +52,14 @@ const STYLE_PRESETS = [
 
 export function WorkflowApp() {
   const { t } = useTranslation();
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('GEMINI_API_KEY') || '');
+  const {
+    apiKey,
+    setApiKey,
+    scriptModel,
+    imageModel,
+    ttsModel,
+    selectedVoice
+  } = useStudioSettings();
   const [topic, setTopic] = useState('');
   const [imageStyle, setImageStyle] = useState('cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere');
   const [isGeneratingPoem, setIsGeneratingPoem] = useState(false);
@@ -146,15 +96,6 @@ export function WorkflowApp() {
   }, [fullAudio]);
 
   // Model Settings
-  const [scriptModel, setScriptModel] = useState('gemini-3-flash-preview');
-  const [imageModel, setImageModel] = useState('gemini-2.5-flash-image');
-  const [ttsModel, setTtsModel] = useState('gemini-3.1-flash-tts-preview');
-  const [selectedVoice, setSelectedVoice] = useState('Kore');
-
-  const handleKeySubmit = (key: string) => {
-    localStorage.setItem('GEMINI_API_KEY', key);
-    setApiKey(key);
-  };
 
   const parseGeminiError = (err: any) => {
     try {
@@ -390,7 +331,7 @@ export function WorkflowApp() {
   };
 
   if (!apiKey) {
-    return <ApiKeyInput onKeySubmit={handleKeySubmit} />;
+    return <ApiKeyInput onKeySubmit={setApiKey} />;
   }
 
   return (
@@ -406,7 +347,7 @@ export function WorkflowApp() {
                 <span className="bg-[#1A1A1A] text-white px-3 sm:px-4 py-1 rounded-xl -rotate-2 font-normal text-2xl sm:text-3xl inline-block shadow-xl border border-[#333]">
                   {t('studio.editorBadge')}
                 </span>
-                <Feather className="w-5 h-5 sm:w-6 sm:h-6 text-[#C5A880] opacity-60" />
+                <HugeiconsIcon icon={FeatherIcon} className="w-5 h-5 sm:w-6 sm:h-6 text-[#C5A880] opacity-60" color="currentColor" strokeWidth={2.25} />
               </h1>
               <p className="text-[#7A7570] text-sm sm:text-base">
                 {t('studio.editorSubtitle')}
@@ -418,7 +359,7 @@ export function WorkflowApp() {
                 onClick={() => setIsSettingsOpen(true)}
                 className="h-[46px] px-4 bg-white border border-[#E5E1DA] rounded-2xl text-[#A8A196] hover:text-[#C5A880] hover:border-[#C5A880] transition-all shadow-sm flex items-center gap-2 group"
               >
-                <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+                <HugeiconsIcon icon={CogIcon} className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" color="currentColor" strokeWidth={2.25} />
                 <span className="text-[10px] uppercase tracking-widest font-bold lg:hidden">{t('studio.settings')}</span>
               </button>
             </div>
@@ -457,7 +398,7 @@ export function WorkflowApp() {
                         className="p-2 bg-[#FAF9F7] text-[#A8A196] hover:text-[#C5A880] rounded-xl transition-all shadow-sm border border-[#E5E1DA] disabled:opacity-50"
                         aria-label={t('studio.tooltipSuggest')}
                       >
-                        <Feather className={`w-4 h-4 ${isSuggesting ? 'animate-pulse' : ''}`} />
+                        <HugeiconsIcon icon={FeatherIcon} className={`w-4 h-4 ${isSuggesting ? 'animate-pulse' : ''}`} color="currentColor" strokeWidth={2.25} />
                       </button>
                       <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#1A1A1A] text-white text-xs font-medium rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-xl">
                         {t('studio.tooltipSuggest')}
@@ -574,18 +515,6 @@ export function WorkflowApp() {
             </div>
           )}
           
-          <div className="pt-12 text-center">
-             <button 
-                onClick={() => {
-                    setApiKey('');
-                    localStorage.removeItem('GEMINI_API_KEY');
-                }}
-                className="text-xs font-bold tracking-widest uppercase text-[#A8A196] hover:text-[#1A1A1A] transition-colors"
-                title={t('studio.btnRemoveKey')}
-             >
-                {t('studio.btnRemoveKey')}
-             </button>
-          </div>
         </div>
       </div>
 
@@ -647,7 +576,7 @@ export function WorkflowApp() {
                         className="p-1 px-1.5 bg-white border border-[#E5E1DA] rounded-lg text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
                         title={t('studio.settings')}
                      >
-                        <Settings className="w-3 h-3" />
+                        <HugeiconsIcon icon={CogIcon} className="w-3 h-3" color="currentColor" strokeWidth={2.25} />
                      </button>
                    </div>
                    <div className="text-[10px] font-mono font-bold text-[#C5A880]">{currentSceneIndex + 1} / {scenes.length}</div>
@@ -730,59 +659,7 @@ export function WorkflowApp() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <CustomSelect 
-                  label={t('studio.labels.scriptModel')}
-                  value={scriptModel}
-                  onChange={setScriptModel}
-                  options={[
-                    { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', description: t('studio.labels.flashLiteDesc') },
-                    { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', description: t('studio.labels.flashDesc') },
-                    { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', description: t('studio.labels.proDesc') },
-                    { value: 'gemini-2.5-flash-preview', label: 'Gemini 2.5 Flash', description: t('studio.labels.legacyDesc') }
-                  ]}
-                />
-
-                <CustomSelect 
-                  label={t('studio.labels.imageModel')}
-                  value={imageModel}
-                  onChange={setImageModel}
-                  options={[
-                    { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image', description: t('studio.labels.nanoDesc') },
-                    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image', description: t('studio.labels.highResDesc') }
-                  ]}
-                />
-
-                <CustomSelect 
-                  label={t('studio.labels.ttsModel')}
-                  value={ttsModel}
-                  onChange={setTtsModel}
-                  options={[
-                    { value: 'gemini-3.1-flash-tts-preview', label: 'Gemini 3.1 Flash TTS', description: t('studio.labels.ttsFlashDesc') },
-                    { value: 'gemini-3.1-pro-tts-preview', label: 'Gemini 3.1 Pro TTS', description: t('studio.labels.ttsProDesc') }
-                  ]}
-                />
-
-                <CustomSelect 
-                  label={t('studio.labels.voiceTone')}
-                  value={selectedVoice}
-                  onChange={setSelectedVoice}
-                  options={AVAILABLE_VOICES.map(voice => ({
-                    value: voice,
-                    label: voice,
-                    description: voice === 'Kore' || voice === 'Aoede' ? t('studio.labels.femSoft') : t('studio.labels.maleDeep')
-                  }))}
-                />
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-[#E5E1DA]">
-                <button
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="w-full bg-[#1A1A1A] text-white font-bold py-4 rounded-full transition-transform active:scale-95 hover:bg-black shadow-lg"
-                >
-                  {t('studio.btnSaveConfig')}
-                </button>
-              </div>
+              <StudioSettingsPanel onClose={() => setIsSettingsOpen(false)} />
            </div>
         </div>
       )}
@@ -831,7 +708,7 @@ export function WorkflowApp() {
                 disabled={isSuggesting}
                 className="w-full py-4 border border-dashed border-[#C5A880] text-[#C5A880] rounded-2xl font-bold text-sm hover:bg-[#C5A880]/5 transition-colors flex items-center justify-center gap-2"
               >
-                {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Feather className="w-4 h-4" />}
+                {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <HugeiconsIcon icon={FeatherIcon} className="w-4 h-4" color="currentColor" strokeWidth={2.25} />}
                 {t('studio.btnMoreIdeas')}
               </button>
            </div>

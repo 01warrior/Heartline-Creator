@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { WorkflowApp } from './components/WorkflowApp';
 import { LandingPage } from './components/LandingPage';
 import { StudioLayout } from './components/layout/StudioLayout';
+import { StudioSettingsProvider } from './components/StudioSettingsContext';
+import { StudioSettingsPage } from './components/StudioSettingsPage';
 
 export default function App() {
   return (
@@ -15,8 +17,16 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         
         {/* Studio Routes with Sidebar */}
-        <Route path="/studio" element={<StudioLayout />}>
+        <Route
+          path="/studio"
+          element={
+            <StudioSettingsProvider>
+              <StudioLayout />
+            </StudioSettingsProvider>
+          }
+        >
           <Route index element={<WorkflowApp />} />
+          <Route path="settings" element={<StudioSettingsPage />} />
           <Route path="videos" element={
             <div className="p-12 h-full overflow-y-auto w-full">
               <h1 className="text-3xl font-sans font-bold text-[#1A1A1A] mb-8">Mes Vidéos</h1>
