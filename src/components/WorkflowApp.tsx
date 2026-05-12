@@ -1,54 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { generatePoem, generateImageForPhrase, generateFullPoemAudio, playPcmAudio, generateTopicSuggestions, audioDataToBlob } from '../services/gemini';
+import React, { useState } from 'react';
+import { playPcmAudio, audioDataToBlob } from '../services/gemini';
 import { exportVideo, exportVideoFast } from '../services/videoExport';
 import { ApiKeyInput } from './ApiKeyInput';
-import { StudioSettingsPanel } from './StudioSettingsPanel';
 import { useStudioSettings } from './StudioSettingsContext';
 import { LanguageSelector } from './LanguageSelector';
-import { Loader2, Play, CheckCircle2, Check, Wand2, Edit3, Image as ImageIcon, Music, X, Sparkles, AlertCircle, Download, Archive, Video, Share2, Facebook, Youtube } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, Check, Wand2, Edit3, Image as ImageIcon, Music, X, Sparkles, Download, Archive, Video, Share2, Facebook, Youtube } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CogIcon, FeatherIcon } from '@hugeicons/core-free-icons';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import Lottie from 'lottie-react';
 import loadingAnimation from '../assets/loading.json';
-import cinematicImg from '../assets/cinematic.png';
+import { STYLE_PRESETS, type Scene } from './workflow/workflowConfig';
+import { useMediaGeneration } from './workflow/useMediaGeneration';
+import { useScriptGeneration } from './workflow/useScriptGeneration';
+import { SettingsModal } from './workflow/ui/SettingsModal';
+import { SuggestionsModal } from './workflow/ui/SuggestionsModal';
+import { ErrorModal } from './workflow/ui/ErrorModal';
 
-type Step = 'TOPIC' | 'REVIEW' | 'GENERATING' | 'PLAYER';
-
-
-interface Scene {
-  phrase: string;
-  image?: string;
-}
-
-const STYLE_PRESETS = [
-  {
-    id: 'stickman',
-    label: 'Stickman Minimal',
-    image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='white'/%3E%3Ccircle cx='50' cy='25' r='10' stroke='black' stroke-width='4' fill='none'/%3E%3Cline x1='50' y1='35' x2='50' y2='70' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='50' x2='30' y2='40' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='50' x2='70' y2='40' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='70' x2='35' y2='95' stroke='black' stroke-width='4'/%3E%3Cline x1='50' y1='70' x2='65' y2='95' stroke='black' stroke-width='4'/%3E%3C/svg%3E",
-    prompt: `Stickman Base Design Prompt that matches the mood and theme of the story. This base prompt should include: Overall vibe (motivational, funny, stressed, calm, etc.) Character style (simple black stickman, rounded head, clean lines) Consistent features (expression style, line thickness, minimal design) White or minimal background style Format: Stickman Base Prompt: "Simple black stickman with a round head, clean smooth lines, minimalist style, expressive face, consistent proportions, modern flat illustration, minimal white background, soft emotional tone matching the story."`
-  },
-  {
-    id: 'cinematic',
-    label: 'Cinematic Noir',
-    image: cinematicImg,
-    prompt: 'cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere'
-  },
-  {
-    id: 'watercolor',
-    label: 'Aquarelle Onirique',
-    image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=400&fit=crop',
-    prompt: 'dreamy soft watercolor illustration, bleeding colors, ethereal atmosphere, delicate brushstrokes, emotional lighting, soft pastel palette, artistic and poetic vibe, minimalist composition'
-  },
-  {
-    id: 'comic',
-    label: 'Style Comics',
-    image: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&h=400&fit=crop',
-    prompt: 'vibrant comic book style, bold ink lines, halftone patterns, dynamic composition, saturated colors, classic superhero aesthetic, high contrast, expressive action'
-  }
-];
 
 export function WorkflowApp() {
   const { t } = useTranslation();
@@ -60,40 +30,14 @@ export function WorkflowApp() {
     ttsModel,
     selectedVoice
   } = useStudioSettings();
-  const [topic, setTopic] = useState('');
   const [imageStyle, setImageStyle] = useState('cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere');
-  const [isGeneratingPoem, setIsGeneratingPoem] = useState(false);
   const [scenes, setScenes] = useState<Scene[]>([]);
-  const [fullAudio, setFullAudio] = useState<{data: string, mimeType: string} | null>(null);
-  const [generationProgress, setGenerationProgress] = useState(0);
-
-  const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
-  const [rightPanelState, setRightPanelState] = useState<'IDLE' | 'GENERATING' | 'PLAYER'>('IDLE');
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [wavUrl, setWavUrl] = useState<string | null>(null);
   const [isExportingVideo, setIsExportingVideo] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
-
-  useEffect(() => {
-    if (fullAudio) {
-      try {
-        const url = URL.createObjectURL(audioDataToBlob(fullAudio.data, fullAudio.mimeType));
-        setWavUrl(url);
-        return () => URL.revokeObjectURL(url);
-      } catch(e) {
-        console.error("Failed to convert audio to Blob", e);
-      }
-    } else {
-      setWavUrl(null);
-    }
-  }, [fullAudio]);
 
   // Model Settings
 
@@ -125,80 +69,7 @@ export function WorkflowApp() {
     };
   };
 
-  const handleGeneratePoem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!topic) return;
-    try {
-      setIsGeneratingPoem(true);
-      const phrases = await generatePoem(apiKey, topic, scriptModel);
-      setScenes(phrases.map(phrase => ({ phrase })));
-      setFullAudio(null);
-      setRightPanelState('IDLE');
-    } catch (err) {
-      setError(parseGeminiError(err));
-      setRightPanelState('IDLE');
-    } finally {
-      setIsGeneratingPoem(false);
-    }
-  };
 
-  const handleGenerateMedia = async () => {
-    setRightPanelState('GENERATING');
-    setGenerationProgress(0);
-    
-    let completedCount = 0;
-    const totalTasks = scenes.length + 1; // Images + 1 Full Audio
-    
-    try {
-      let currentScenes = [...scenes];
-      
-      // 1. Generate Images one by one
-      for (let i = 0; i < currentScenes.length; i++) {
-        if (currentScenes[i].image) {
-          completedCount++;
-          setGenerationProgress((completedCount / totalTasks) * 100);
-          continue;
-        }
-
-        try {
-          const image = await generateImageForPhrase(apiKey, currentScenes[i].phrase, imageStyle, imageModel);
-          const newScenes = [...currentScenes];
-          newScenes[i] = { ...newScenes[i], image };
-          currentScenes = newScenes;
-          setScenes(newScenes);
-          completedCount++;
-          setGenerationProgress((completedCount / totalTasks) * 100);
-        } catch (e: any) {
-          const errorInfo = parseGeminiError(e);
-          if (errorInfo.title === "Quota Exceeded") {
-            setError(errorInfo);
-            // We stay in GENERATING state so the progress bar/images generated stay visible
-            return; 
-          }
-          console.error(`Error scene ${i}:`, e);
-          completedCount++;
-          setGenerationProgress((completedCount / totalTasks) * 100);
-        }
-      }
-
-      // 2. Generate Full Audio
-      if (!fullAudio) {
-        try {
-          const fullText = currentScenes.map(s => s.phrase).join(". ");
-          const audio = await generateFullPoemAudio(apiKey, fullText, ttsModel, selectedVoice);
-          setFullAudio(audio);
-        } catch (e: any) {
-          setError(parseGeminiError(e));
-        }
-      }
-      
-      completedCount++;
-      setGenerationProgress(100);
-      setRightPanelState('PLAYER');
-    } catch (err) {
-      setError(parseGeminiError(err));
-    }
-  };
 
   const downloadImage = (base64: string, index: number) => {
     const link = document.createElement('a');
@@ -310,25 +181,50 @@ export function WorkflowApp() {
     setScenes(newScenes);
   };
 
-  const playSequence = async () => {
-    if (isPlaying || !fullAudio) return;
-    setIsPlaying(true);
-    setCurrentSceneIndex(0);
+  const {
+    currentSceneIndex,
+    generationProgress,
+    handleGenerateMedia,
+    isPlaying,
+    playSequence,
+    fullAudio,
+    setFullAudio,
+    rightPanelState,
+    setRightPanelState,
+    wavUrl
+  } = useMediaGeneration({
+    apiKey,
+    scenes,
+    setScenes,
+    imageStyle,
+    imageModel,
+    ttsModel,
+    selectedVoice,
+    parseGeminiError,
+    setError
+  });
 
-    try {
-        await playPcmAudio(fullAudio.data, (percent) => {
-            const sceneIndex = Math.min(
-                Math.floor((percent / 100) * scenes.length),
-                scenes.length - 1
-            );
-            setCurrentSceneIndex(sceneIndex);
-        });
-    } catch(e) {
-        console.error("Playback error", e);
-    } finally {
-        setIsPlaying(false);
-    }
-  };
+  const {
+    handleGeneratePoem,
+    handleOpenSuggestions,
+    handleRefreshSuggestions,
+    isGeneratingPoem,
+    isSuggesting,
+    isSuggestionsModalOpen,
+    setIsSuggestionsModalOpen,
+    setSuggestions,
+    setTopic,
+    suggestions,
+    topic
+  } = useScriptGeneration({
+    apiKey,
+    scriptModel,
+    setScenes,
+    setError,
+    setFullAudio,
+    setRightPanelState,
+    parseGeminiError
+  });
 
   if (!apiKey) {
     return <ApiKeyInput onKeySubmit={setApiKey} />;
@@ -383,18 +279,7 @@ export function WorkflowApp() {
                       <button
                         type="button"
                         disabled={isSuggesting}
-                        onClick={async () => {
-                          try {
-                            setIsSuggesting(true);
-                            const suggestionsList = await generateTopicSuggestions(apiKey, scriptModel);
-                            setSuggestions(suggestionsList);
-                            setIsSuggestionsModalOpen(true);
-                          } catch (e) {
-                            setError(parseGeminiError(e));
-                          } finally {
-                            setIsSuggesting(false);
-                          }
-                        }}
+                        onClick={handleOpenSuggestions}
                         className="p-2 bg-[#FAF9F7] text-[#A8A196] hover:text-[#C5A880] rounded-xl transition-all shadow-sm border border-[#E5E1DA] disabled:opacity-50"
                         aria-label={t('studio.tooltipSuggest')}
                       >
@@ -649,117 +534,23 @@ export function WorkflowApp() {
          )}
       </div>
       {/* SETTINGS MODAL */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-[#FAF9F7] w-full max-w-2xl p-8 rounded-3xl border border-[#E5E1DA] shadow-2xl space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">{t('studio.settingsTitle')}</h2>
-                <button onClick={() => setIsSettingsOpen(false)} className="text-[#A8A196] hover:text-[#1A1A1A] transition-colors p-1">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
-              <StudioSettingsPanel onClose={() => setIsSettingsOpen(false)} />
-           </div>
-        </div>
-      )}
       {/* SUGGESTIONS MODAL */}
-      {isSuggestionsModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-[#FAF9F7] w-full max-w-lg p-8 rounded-3xl border border-[#E5E1DA] shadow-2xl space-y-6 animate-in zoom-in-95 duration-300">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">{t('studio.aiSuggestions')}</h2>
-                  <p className="text-[#A8A196] text-xs font-bold uppercase tracking-widest mt-1">{t('studio.themePick')}</p>
-                </div>
-                <button onClick={() => setIsSuggestionsModalOpen(false)} className="text-[#A8A196] hover:text-[#1A1A1A] transition-colors p-1">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="grid gap-3">
-                {suggestions.map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setTopic(suggestion);
-                      setIsSuggestionsModalOpen(false);
-                    }}
-                    className="w-full text-left p-5 bg-white border border-[#E5E1DA] rounded-2xl hover:border-[#C5A880] hover:bg-[#FAF9F7] transition-all group relative overflow-hidden"
-                  >
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#E5E1DA] group-hover:bg-[#C5A880] transition-colors"></div>
-                    <span className="text-[#1A1A1A] font-medium block">{suggestion}</span>
-                  </button>
-                ))}
-              </div>
-
-              <button 
-                onClick={async () => {
-                   setIsSuggesting(true);
-                   try {
-                     const suggestionsList = await generateTopicSuggestions(apiKey, scriptModel);
-                     setSuggestions(suggestionsList);
-                   } catch (e) {
-                     setError(parseGeminiError(e));
-                   } finally {
-                     setIsSuggesting(false);
-                   }
-                }}
-                disabled={isSuggesting}
-                className="w-full py-4 border border-dashed border-[#C5A880] text-[#C5A880] rounded-2xl font-bold text-sm hover:bg-[#C5A880]/5 transition-colors flex items-center justify-center gap-2"
-              >
-                {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <HugeiconsIcon icon={FeatherIcon} className="w-4 h-4" color="currentColor" strokeWidth={2.25} />}
-                {t('studio.btnMoreIdeas')}
-              </button>
-           </div>
-        </div>
-      )}
+      <SuggestionsModal
+        isOpen={isSuggestionsModalOpen}
+        suggestions={suggestions}
+        isSuggesting={isSuggesting}
+        onClose={() => setIsSuggestionsModalOpen(false)}
+        onSelect={(suggestion) => {
+          setTopic(suggestion);
+          setIsSuggestionsModalOpen(false);
+        }}
+        onRefresh={handleRefreshSuggestions}
+      />
 
       {/* ERROR MODAL */}
-      {error && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-2xl space-y-6 animate-in zoom-in-95 duration-300 border border-red-100">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-8 h-8 text-red-500" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-sans font-bold text-[#1A1A1A]">{error.title}</h2>
-                  <p className="text-[#7A7570] text-sm mt-2 leading-relaxed">
-                    {error.message}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-[#FAF9F7] p-4 rounded-2xl border border-[#E5E1DA]">
-                <p className="text-[11px] font-bold text-[#A8A196] uppercase tracking-wider mb-2">{t('studio.howToSolve')}</p>
-                <ul className="text-xs text-[#7A7570] space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">1</span>
-                    {t('studio.solve1')}
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">2</span>
-                    {t('studio.solve2')}
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-4 h-4 rounded-full bg-[#C5A880]/10 text-[#C5A880] flex items-center justify-center flex-shrink-0">3</span>
-                    <Trans i18nKey="studio.solve3">
-                      Ouvrez la **Bibliothèque** pour télécharger les éléments déjà générés !
-                    </Trans>
-                  </li>
-                </ul>
-              </div>
-
-              <button 
-                onClick={() => setError(null)}
-                className="w-full py-4 bg-[#1A1A1A] text-white rounded-full font-bold text-sm hover:bg-black transition-colors"
-              >
-                {t('studio.btnUnderstood')}
-              </button>
-           </div>
-        </div>
-      )}
+      <ErrorModal error={error} onClose={() => setError(null)} />
 
       {/* ASSETS MODAL */}
       {isAssetsModalOpen && (
