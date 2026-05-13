@@ -14,6 +14,10 @@ type StudioSettingsContextValue = {
   setSelectedVoice: (value: string) => void;
   imageStyle: string;
   setImageStyle: (value: string) => void;
+  sceneCountMin: number;
+  setSceneCountMin: (value: number) => void;
+  sceneCountMax: number;
+  setSceneCountMax: (value: number) => void;
 };
 
 const SETTINGS_STORAGE_KEYS = {
@@ -21,7 +25,9 @@ const SETTINGS_STORAGE_KEYS = {
   imageModel: 'STUDIO_IMAGE_MODEL',
   ttsModel: 'STUDIO_TTS_MODEL',
   selectedVoice: 'STUDIO_SELECTED_VOICE',
-  imageStyle: 'STUDIO_IMAGE_STYLE'
+  imageStyle: 'STUDIO_IMAGE_STYLE',
+  sceneCountMin: 'STUDIO_SCENE_COUNT_MIN',
+  sceneCountMax: 'STUDIO_SCENE_COUNT_MAX'
 };
 
 const DEFAULT_SETTINGS = {
@@ -29,7 +35,9 @@ const DEFAULT_SETTINGS = {
   imageModel: 'gemini-2.5-flash-image',
   ttsModel: 'gemini-3.1-flash-tts-preview',
   selectedVoice: 'Kore',
-  imageStyle: 'cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere'
+  imageStyle: 'cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere',
+  sceneCountMin: 6,
+  sceneCountMax: 8
 };
 
 const StudioSettingsContext = createContext<StudioSettingsContextValue | null>(null);
@@ -50,6 +58,12 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
   );
   const [imageStyle, setImageStyleState] = useState(
     () => localStorage.getItem(SETTINGS_STORAGE_KEYS.imageStyle) || DEFAULT_SETTINGS.imageStyle
+  );
+  const [sceneCountMin, setSceneCountMinState] = useState(
+    () => parseInt(localStorage.getItem(SETTINGS_STORAGE_KEYS.sceneCountMin) || String(DEFAULT_SETTINGS.sceneCountMin), 10)
+  );
+  const [sceneCountMax, setSceneCountMaxState] = useState(
+    () => parseInt(localStorage.getItem(SETTINGS_STORAGE_KEYS.sceneCountMax) || String(DEFAULT_SETTINGS.sceneCountMax), 10)
   );
 
   const setApiKey = (key: string) => {
@@ -87,6 +101,16 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
     setImageStyleState(value);
   };
 
+  const setSceneCountMin = (value: number) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.sceneCountMin, String(value));
+    setSceneCountMinState(value);
+  };
+
+  const setSceneCountMax = (value: number) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.sceneCountMax, String(value));
+    setSceneCountMaxState(value);
+  };
+
   const value = useMemo(
     () => ({
       apiKey,
@@ -101,9 +125,13 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
       selectedVoice,
       setSelectedVoice,
       imageStyle,
-      setImageStyle
+      setImageStyle,
+      sceneCountMin,
+      setSceneCountMin,
+      sceneCountMax,
+      setSceneCountMax
     }),
-    [apiKey, scriptModel, imageModel, ttsModel, selectedVoice, imageStyle]
+    [apiKey, scriptModel, imageModel, ttsModel, selectedVoice, imageStyle, sceneCountMin, sceneCountMax]
   );
 
   return <StudioSettingsContext.Provider value={value}>{children}</StudioSettingsContext.Provider>;

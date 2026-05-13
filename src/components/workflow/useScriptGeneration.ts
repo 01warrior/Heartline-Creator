@@ -12,6 +12,8 @@ type UseScriptGenerationParams = {
   setFullAudio: React.Dispatch<React.SetStateAction<{ data: string; mimeType: string } | null>>;
   setRightPanelState: React.Dispatch<React.SetStateAction<'IDLE' | 'GENERATING' | 'PLAYER'>>;
   parseGeminiError: (err: any) => { title: string; message: string };
+  sceneCountMin: number;
+  sceneCountMax: number;
 };
 
 export function useScriptGeneration({
@@ -21,7 +23,9 @@ export function useScriptGeneration({
   setError,
   setFullAudio,
   setRightPanelState,
-  parseGeminiError
+  parseGeminiError,
+  sceneCountMin,
+  sceneCountMax
 }: UseScriptGenerationParams) {
   const [topic, setTopic] = useState('');
   const [isGeneratingPoem, setIsGeneratingPoem] = useState(false);
@@ -34,7 +38,7 @@ export function useScriptGeneration({
     if (!topic) return;
     try {
       setIsGeneratingPoem(true);
-      const phrases = await generatePoem(apiKey, topic, scriptModel);
+      const phrases = await generatePoem(apiKey, topic, scriptModel, sceneCountMin, sceneCountMax);
       setScenes(phrases.map((phrase) => ({ phrase })));
       setFullAudio(null);
       setRightPanelState('IDLE');

@@ -30,7 +30,9 @@ export function WorkflowApp() {
     ttsModel,
     selectedVoice,
     imageStyle,
-    setImageStyle
+    setImageStyle,
+    sceneCountMin,
+    sceneCountMax
   } = useStudioSettings();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
@@ -224,7 +226,9 @@ export function WorkflowApp() {
     setError,
     setFullAudio,
     setRightPanelState,
-    parseGeminiError
+    parseGeminiError,
+    sceneCountMin,
+    sceneCountMax
   });
 
   if (!apiKey) {

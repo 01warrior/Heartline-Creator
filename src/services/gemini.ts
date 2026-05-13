@@ -8,14 +8,14 @@ function getAI(apiKey: string) {
   return new GoogleGenAI({ apiKey });
 }
 
-export async function generatePoem(apiKey: string, topic: string, model: string = 'gemini-3.1-pro-preview'): Promise<string[]> {
+export async function generatePoem(apiKey: string, topic: string, model: string = 'gemini-3.1-pro-preview', sceneCountMin: number = 6, sceneCountMax: number = 8): Promise<string[]> {
   const ai = getAI(apiKey);
   
   const response = await ai.models.generateContent({
     model: model,
     contents: `Write a romantic, emotional, and deep poem about the topic: "${topic}". 
     It should be in the style of highly engaging TikTok/Reels poetry accounts like 'Heartlines', where each line evokes a strong feeling.
-    Split the poem into 6-8 distinct phrases (each phrase will be a separate scene).
+    Split the poem into ${sceneCountMin}-${sceneCountMax} distinct phrases (each phrase will be a separate scene).
     Make each phrase a normal sentence length (about 6-12 words each) to keep it concise and impactful.
     Language: French or English based on the topic.
     The tone must be: romantic, quiet, deep, emotionally resonant.`,

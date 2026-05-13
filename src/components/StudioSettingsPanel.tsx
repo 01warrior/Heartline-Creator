@@ -75,7 +75,7 @@ export function StudioSettingsPanel({
 }: {
   showApiKeyActions?: boolean;
   onClose?: () => void;
-  visibleSections?: Array<'models' | 'voice' | 'security' | 'style'>;
+  visibleSections?: Array<'models' | 'voice' | 'security' | 'style' | 'script'>;
   showSectionHeaders?: boolean;
 }) {
   const { t } = useTranslation();
@@ -90,7 +90,11 @@ export function StudioSettingsPanel({
     selectedVoice,
     setSelectedVoice,
     imageStyle,
-    setImageStyle
+    setImageStyle,
+    sceneCountMin,
+    setSceneCountMin,
+    sceneCountMax,
+    setSceneCountMax
   } = useStudioSettings();
 
   const scriptModelOptions = [
@@ -143,7 +147,7 @@ export function StudioSettingsPanel({
     }
   ];
 
-  const shouldShowSection = (sectionId: 'models' | 'voice' | 'security' | 'style') =>
+  const shouldShowSection = (sectionId: 'models' | 'voice' | 'security' | 'style' | 'script') =>
     !visibleSections || visibleSections.includes(sectionId);
 
   return (
@@ -251,6 +255,61 @@ export function StudioSettingsPanel({
             <p className="mt-3 text-[10px] text-[#A8A196] leading-relaxed italic">
               {t('studio.styleTip')}
             </p>
+          </div>
+        </section>
+      )}
+
+      {shouldShowSection('script') && (
+        <section id="script" className="space-y-6">
+          {showSectionHeaders && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A8A196]">Script</p>
+              <h3 className="text-xl font-sans font-bold text-[#1A1A1A] mt-2">Paramètres du poème</h3>
+              <p className="text-sm text-[#7A7570] mt-2">
+                Personnalisez la longueur du poème généré (nombre de scènes).
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">
+                Nombre de scènes : {sceneCountMin}-{sceneCountMax}
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-2">Minimum</label>
+                  <input
+                    type="number"
+                    min="3"
+                    max="12"
+                    value={sceneCountMin}
+                    onChange={(e) => {
+                      const val = Math.min(parseInt(e.target.value, 10) || 3, sceneCountMax);
+                      setSceneCountMin(Math.max(val, 3));
+                    }}
+                    className="w-full bg-white border border-[#E5E1DA] p-3 rounded-xl text-[#1A1A1A] font-mono text-sm focus:outline-none focus:border-[#C5A880] transition-colors shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-2">Maximum</label>
+                  <input
+                    type="number"
+                    min="3"
+                    max="12"
+                    value={sceneCountMax}
+                    onChange={(e) => {
+                      const val = Math.max(parseInt(e.target.value, 10) || 12, sceneCountMin);
+                      setSceneCountMax(Math.min(val, 12));
+                    }}
+                    className="w-full bg-white border border-[#E5E1DA] p-3 rounded-xl text-[#1A1A1A] font-mono text-sm focus:outline-none focus:border-[#C5A880] transition-colors shadow-sm"
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-[10px] text-[#A8A196] leading-relaxed italic">
+                L'IA générera un nombre de scènes entre ces deux valeurs. Augmentez pour plus de détails, diminuez pour plus de concision.
+              </p>
+            </div>
           </div>
         </section>
       )}
