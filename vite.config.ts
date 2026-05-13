@@ -26,3 +26,4 @@ export default defineConfig(({mode}) => {
     },
   };
 });
+    // HMR is disabled via DISABLE_HMR env var.
