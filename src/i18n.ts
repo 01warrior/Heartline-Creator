@@ -107,7 +107,7 @@ const resources = {
           flashDesc: 'Balanced Performance - The recommended standard choice.',
           proDesc: 'Advanced Intelligence - Complex poetry and deep nuances.',
           legacyDesc: 'Legacy Model - Stable and proven.',
-          nanoDesc: 'Nano Banana - Abstract styles and fast generations.',
+          nanoDesc: 'Fast generation.',
           highResDesc: 'High Quality - Photorealistic textures and depth.',
           ttsFlashDesc: 'Recommended - Natural and expressive voices.',
           ttsProDesc: 'Studio Quality - Crystal clear clarity.'
@@ -219,7 +219,7 @@ const resources = {
           flashDesc: 'Équilibre Performance - Le choix standard recommandé.',
           proDesc: 'Intelligence Avancée - Poésie complexe et nuances profondes.',
           legacyDesc: 'Modèle Hérité - Stable et éprouvé.',
-          nanoDesc: 'Nano Banana - Styles abstraits et générations rapides.',
+          nanoDesc: 'Génération rapide.',
           highResDesc: 'Haute Qualité - Textures photoréalistes et profondeur.',
           ttsFlashDesc: 'Recommandé - Voix naturelles et expressives.',
           ttsProDesc: 'Qualité Studio - Clarté cristalline.'
