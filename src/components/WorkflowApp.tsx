@@ -447,13 +447,6 @@ export function WorkflowApp() {
                         <Archive className="w-3 h-3 text-[#C5A880]" />
                         Library
                      </button>
-                     <button 
-                        onClick={() => setIsSettingsOpen(true)}
-                        className="p-1 px-1.5 bg-white border border-[#E5E1DA] rounded-lg text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
-                        title={t('studio.settings')}
-                     >
-                        <HugeiconsIcon icon={CogIcon} className="w-3 h-3" color="currentColor" strokeWidth={2.25} />
-                     </button>
                    </div>
                    <div className="text-[10px] font-mono font-bold text-[#C5A880]">{currentSceneIndex + 1} / {scenes.length}</div>
                </div>
