@@ -218,9 +218,9 @@ export async function exportVideo(
     onProgress?.(Math.round(progress * 100));
   });
 
-  const baseURL = window.location.origin;
-  const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-  const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+  // Use public paths directly without toBlobURL conversion to avoid CORS issues
+  const coreURL = '/ffmpeg-core.js';
+  const wasmURL = '/ffmpeg-core.wasm';
   
   console.log('[FFmpeg] Attempting to load from:', { coreURL, wasmURL });
 
@@ -290,10 +290,8 @@ export async function exportVideo(
 
   // 5. EXPORT
   const data = await ffmpeg.readFile('output.mp4');
-  const blob = new Blob(
-    [data instanceof Uint8Array ? data : new Uint8Array(data as unknown as ArrayBuffer)],
-    { type: 'video/mp4' }
-  );
+  const uint8Data = data instanceof Uint8Array ? new Uint8Array(data) : new Uint8Array(data as unknown as ArrayBuffer);
+  const blob = new Blob([uint8Data], { type: 'video/mp4' });
   
   return blob;
 }
