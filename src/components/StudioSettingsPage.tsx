@@ -45,6 +45,21 @@ export function StudioSettingsPage() {
             <section className="bg-white border border-[#E5E1DA] rounded-3xl p-6 sm:p-8 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
+                  <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A8A196]">Style visuel</p>
+                  <h2 className="text-2xl font-sans font-bold text-[#1A1A1A] mt-2">Direction artistique</h2>
+                  <p className="text-sm text-[#7A7570] mt-2 max-w-xl">
+                    Definissez la signature visuelle appliquee a toutes les images.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6">
+                <StudioSettingsPanel visibleSections={['style']} showSectionHeaders={false} />
+              </div>
+            </section>
+
+            <section className="bg-white border border-[#E5E1DA] rounded-3xl p-6 sm:p-8 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
                   <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A8A196]">Voix</p>
                   <h2 className="text-2xl font-sans font-bold text-[#1A1A1A] mt-2">Voix et narration</h2>
                   <p className="text-sm text-[#7A7570] mt-2 max-w-xl">

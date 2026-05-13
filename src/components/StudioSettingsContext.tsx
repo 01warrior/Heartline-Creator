@@ -12,20 +12,24 @@ type StudioSettingsContextValue = {
   setTtsModel: (value: string) => void;
   selectedVoice: string;
   setSelectedVoice: (value: string) => void;
+  imageStyle: string;
+  setImageStyle: (value: string) => void;
 };
 
 const SETTINGS_STORAGE_KEYS = {
   scriptModel: 'STUDIO_SCRIPT_MODEL',
   imageModel: 'STUDIO_IMAGE_MODEL',
   ttsModel: 'STUDIO_TTS_MODEL',
-  selectedVoice: 'STUDIO_SELECTED_VOICE'
+  selectedVoice: 'STUDIO_SELECTED_VOICE',
+  imageStyle: 'STUDIO_IMAGE_STYLE'
 };
 
 const DEFAULT_SETTINGS = {
   scriptModel: 'gemini-3-flash-preview',
   imageModel: 'gemini-2.5-flash-image',
   ttsModel: 'gemini-3.1-flash-tts-preview',
-  selectedVoice: 'Kore'
+  selectedVoice: 'Kore',
+  imageStyle: 'cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere'
 };
 
 const StudioSettingsContext = createContext<StudioSettingsContextValue | null>(null);
@@ -43,6 +47,9 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
   );
   const [selectedVoice, setSelectedVoiceState] = useState(
     () => localStorage.getItem(SETTINGS_STORAGE_KEYS.selectedVoice) || DEFAULT_SETTINGS.selectedVoice
+  );
+  const [imageStyle, setImageStyleState] = useState(
+    () => localStorage.getItem(SETTINGS_STORAGE_KEYS.imageStyle) || DEFAULT_SETTINGS.imageStyle
   );
 
   const setApiKey = (key: string) => {
@@ -75,6 +82,11 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
     setSelectedVoiceState(value);
   };
 
+  const setImageStyle = (value: string) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.imageStyle, value);
+    setImageStyleState(value);
+  };
+
   const value = useMemo(
     () => ({
       apiKey,
@@ -87,9 +99,11 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
       ttsModel,
       setTtsModel,
       selectedVoice,
-      setSelectedVoice
+      setSelectedVoice,
+      imageStyle,
+      setImageStyle
     }),
-    [apiKey, scriptModel, imageModel, ttsModel, selectedVoice]
+    [apiKey, scriptModel, imageModel, ttsModel, selectedVoice, imageStyle]
   );
 
   return <StudioSettingsContext.Provider value={value}>{children}</StudioSettingsContext.Provider>;

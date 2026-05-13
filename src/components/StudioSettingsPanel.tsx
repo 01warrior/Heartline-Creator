@@ -75,7 +75,7 @@ export function StudioSettingsPanel({
 }: {
   showApiKeyActions?: boolean;
   onClose?: () => void;
-  visibleSections?: Array<'models' | 'voice' | 'security'>;
+  visibleSections?: Array<'models' | 'voice' | 'security' | 'style'>;
   showSectionHeaders?: boolean;
 }) {
   const { t } = useTranslation();
@@ -88,7 +88,9 @@ export function StudioSettingsPanel({
     ttsModel,
     setTtsModel,
     selectedVoice,
-    setSelectedVoice
+    setSelectedVoice,
+    imageStyle,
+    setImageStyle
   } = useStudioSettings();
 
   const scriptModelOptions = [
@@ -141,7 +143,7 @@ export function StudioSettingsPanel({
     }
   ];
 
-  const shouldShowSection = (sectionId: 'models' | 'voice' | 'security') =>
+  const shouldShowSection = (sectionId: 'models' | 'voice' | 'security' | 'style') =>
     !visibleSections || visibleSections.includes(sectionId);
 
   return (
@@ -217,6 +219,38 @@ export function StudioSettingsPanel({
             >
               {t('studio.btnRemoveKey')}
             </button>
+          </div>
+        </section>
+      )}
+
+      {shouldShowSection('style') && (
+        <section id="style" className="space-y-6">
+          {showSectionHeaders && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A8A196]">Style visuel</p>
+              <h3 className="text-xl font-sans font-bold text-[#1A1A1A] mt-2">Direction artistique</h3>
+              <p className="text-sm text-[#7A7570] mt-2">
+                Affinez le style utilise pour toutes les images generees.
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">
+              {t('studio.styleLabel')}
+            </label>
+            <div className="relative bg-white border border-[#E5E1DA] rounded-xl overflow-hidden focus-within:border-[#C5A880] transition-colors shadow-sm">
+              <input
+                type="text"
+                value={imageStyle}
+                onChange={e => setImageStyle(e.target.value)}
+                placeholder={t('studio.stylePlaceholder')}
+                className="w-full bg-transparent p-4 text-[#1A1A1A] text-sm placeholder-[#A8A196] focus:outline-none"
+              />
+            </div>
+            <p className="mt-3 text-[10px] text-[#A8A196] leading-relaxed italic">
+              {t('studio.styleTip')}
+            </p>
           </div>
         </section>
       )}

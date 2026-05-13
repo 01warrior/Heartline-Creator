@@ -28,9 +28,10 @@ export function WorkflowApp() {
     scriptModel,
     imageModel,
     ttsModel,
-    selectedVoice
+    selectedVoice,
+    imageStyle,
+    setImageStyle
   } = useStudioSettings();
-  const [imageStyle, setImageStyle] = useState('cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere');
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
@@ -296,16 +297,6 @@ export function WorkflowApp() {
 
               <div>
                 <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">{t('studio.styleLabel')}</label>
-                <div className="relative bg-white border border-[#E5E1DA] rounded-xl overflow-hidden focus-within:border-[#C5A880] transition-colors shadow-sm">
-                   <input
-                    type="text"
-                    value={imageStyle}
-                    onChange={e => setImageStyle(e.target.value)}
-                    placeholder={t('studio.stylePlaceholder')}
-                    className="w-full bg-transparent p-4 text-[#1A1A1A] text-sm placeholder-[#A8A196] focus:outline-none"
-                  />
-                </div>
-                
                 <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {STYLE_PRESETS.map((preset) => (
                     <button
