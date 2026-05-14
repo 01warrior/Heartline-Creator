@@ -23,7 +23,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </button>
         </div>
 
-        <StudioSettingsPanel visibleSections={['voice', 'style']} onClose={onClose} />
+        <StudioSettingsPanel visibleSections={['voice']} onClose={onClose} />
       </div>
     </div>
   );
