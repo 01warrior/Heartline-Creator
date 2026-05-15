@@ -20,9 +20,9 @@ export const STYLE_PRESETS = [
   },
   {
     id: 'watercolor',
-    label: 'Aquarelle Onirique',
+    label: 'Impasto Vertical',
     image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=400&fit=crop',
-    prompt: 'dreamy soft watercolor illustration, bleeding colors, ethereal atmosphere, delicate brushstrokes, emotional lighting, soft pastel palette, artistic and poetic vibe, minimalist composition'
+    prompt: 'A vertical oil painting in a rich textured impasto style, with thick visible brushstrokes, layered paint, expressive texture, deep saturated colors, and a dramatic painterly surface. Strong sense of depth, tactile relief, and artistic movement. Powerful and atmospheric composition, vertically framed, abstract yet visually striking.'
   },
   {
     id: 'comic',
