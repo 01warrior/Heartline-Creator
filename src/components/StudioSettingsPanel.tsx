@@ -388,12 +388,12 @@ export function StudioSettingsPanel({
                   <label className="block text-xs font-semibold text-[#1A1A1A] mb-2">Minimum</label>
                   <input
                     type="number"
-                    min="3"
+                    min="2"
                     max="12"
                     value={sceneCountMin}
                     onChange={(e) => {
-                      const val = Math.min(parseInt(e.target.value, 10) || 3, sceneCountMax);
-                      setSceneCountMin(Math.max(val, 3));
+                      const val = Math.min(parseInt(e.target.value, 10) || 2, sceneCountMax);
+                      setSceneCountMin(Math.max(val, 2));
                     }}
                     className="w-full bg-white border border-[#E5E1DA] p-3 rounded-xl text-[#1A1A1A] font-mono text-sm focus:outline-none focus:border-[#C5A880] transition-colors shadow-sm"
                   />
@@ -402,7 +402,7 @@ export function StudioSettingsPanel({
                   <label className="block text-xs font-semibold text-[#1A1A1A] mb-2">Maximum</label>
                   <input
                     type="number"
-                    min="3"
+                    min="2"
                     max="12"
                     value={sceneCountMax}
                     onChange={(e) => {

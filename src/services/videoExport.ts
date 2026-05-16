@@ -29,7 +29,21 @@ export async function exportVideoFast(
       const validScenes = scenes.filter(s => !!s.image || !!s.video);
       if (validScenes.length === 0) throw new Error('Aucune image à exporter');
 
-      const durationPerScene = audioDuration / validScenes.length;
+      // PRE-CALCULATE SCENE DURATIONS
+      // We want each scene to be at least as long as its narration part, 
+      // but also at least as long as the generated video (e.g. 8s) to not "lose" footage.
+      const baseNarrationDuration = audioDuration / validScenes.length;
+      
+      const sceneDurations = validScenes.map(() => {
+        // We use 8s as a safe default for Veo videos if metadata isn't fully loaded
+        return Math.max(baseNarrationDuration, 8); 
+      });
+
+      const totalVideoDuration = sceneDurations.reduce((a, b) => a + b, 0);
+      const sceneStarts = [0];
+      for (let i = 0; i < sceneDurations.length - 1; i++) {
+        sceneStarts.push(sceneStarts[i] + sceneDurations[i]);
+      }
 
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
@@ -100,6 +114,9 @@ export async function exportVideoFast(
       recorder.ondataavailable = e => {
         if (e.data.size > 0) chunks.push(e.data);
       };
+      recorder.onstart = () => {
+        console.log('[MediaRecorder] Recording started.');
+      };
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType });
         resolve(blob);
@@ -111,16 +128,27 @@ export async function exportVideoFast(
 
       let exportFinished = false;
       let lastProgressUpdate = 0;
+      let startTimeRef = 0;
       
       const renderFrame = () => {
         if (exportFinished) return;
 
-        // Use audio.currentTime as the master clock for sync
-        const elapsed = audio.currentTime;
+        // Use an internal clock that can exceed audio duration
+        // We still use audio as a base, but if audio ends and video is longer, we keep going
+        const elapsed = (performance.now() - startTimeRef) / 1000 * (audio.playbackRate || 1);
         
+        // Update progress based on totalVideoDuration
+        if (onProgress) {
+          const currentProgress = Math.min((elapsed / totalVideoDuration) * 100, 100);
+          if (currentProgress - lastProgressUpdate > 0.5) {
+            onProgress(currentProgress);
+            lastProgressUpdate = currentProgress;
+          }
+        }
+
         // Final transition check
-        if (audio.ended || (elapsed >= audioDuration - 0.05 && elapsed > 0)) {
-          console.log('[MediaRecorder] Export reached end of audio.');
+        if (elapsed >= totalVideoDuration - 0.05) {
+          console.log('[MediaRecorder] Export reached end of total duration.');
           exportFinished = true;
           if (recorder.state !== 'inactive') {
             recorder.stop();
@@ -129,8 +157,18 @@ export async function exportVideoFast(
           return;
         }
 
-        const targetSceneIndex = Math.min(Math.max(0, Math.floor(elapsed / durationPerScene)), loadedMedia.length - 1);
-        const sceneProgress = (elapsed % durationPerScene) / durationPerScene;
+        // Determine which scene we are in
+        let targetSceneIndex = 0;
+        for (let i = sceneStarts.length - 1; i >= 0; i--) {
+          if (elapsed >= sceneStarts[i]) {
+            targetSceneIndex = i;
+            break;
+          }
+        }
+
+        const sceneElapsed = elapsed - sceneStarts[targetSceneIndex];
+        const currentSceneDuration = sceneDurations[targetSceneIndex];
+        const sceneProgress = Math.min(sceneElapsed / currentSceneDuration, 1);
         
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -140,6 +178,22 @@ export async function exportVideoFast(
         
         // Use video frame if available, otherwise use image with zoom
         if (media.vid && media.vid.readyState >= 2) {
+          const vidDuration = media.vid.duration || 8;
+          
+          // ADAPTIVE SPEED (Possibilité 2)
+          // If scene is longer than video, we slow down the video (down to 0.5x speed)
+          // Otherwise we loop.
+          let playbackRate = 1;
+          if (currentSceneDuration > vidDuration) {
+             playbackRate = Math.max(0.5, vidDuration / currentSceneDuration);
+          }
+          
+          // Sync video time with scene progress and playback rate
+          // If we are slower than 0.5x, the modulo will handle the loop
+          const targetVidTime = (sceneElapsed * playbackRate) % vidDuration;
+          
+          media.vid.currentTime = targetVidTime;
+
           // Draw video frame — cover the canvas
           const vw = media.vid.videoWidth || canvas.width;
           const vh = media.vid.videoHeight || canvas.height;
@@ -160,7 +214,6 @@ export async function exportVideoFast(
         }
 
         // Subtitles Overlay
-        const sceneElapsed = elapsed % durationPerScene;
         const gradientAlpha = Math.min(1, sceneElapsed / 0.5);
         ctx.save();
         ctx.globalAlpha = gradientAlpha;
@@ -215,7 +268,7 @@ export async function exportVideoFast(
         // Throttled progress update to save CPU for the encoder
         const now = performance.now();
         if (now - lastProgressUpdate > 200) {
-          onProgress?.((elapsed / audioDuration) * 100);
+          onProgress?.((elapsed / totalVideoDuration) * 100);
           lastProgressUpdate = now;
         }
         
@@ -224,6 +277,8 @@ export async function exportVideoFast(
 
       // Start recording with a timeslice to flush data regularly
       recorder.start(1000);
+      startTimeRef = performance.now();
+      lastProgressUpdate = performance.now();
       audio.play().catch(e => {
         console.error('Audio play failed:', e);
         reject(e);
