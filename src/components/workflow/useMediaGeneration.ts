@@ -16,6 +16,7 @@ type UseMediaGenerationParams = {
   selectedVoice: string;
   animateVideo: boolean;
   videoModel: string;
+  videoQuality: string;
   parseGeminiError: (err: any) => { title: string; message: string };
   setError: React.Dispatch<React.SetStateAction<ErrorState>>;
 };
@@ -30,6 +31,7 @@ export function useMediaGeneration({
   selectedVoice,
   animateVideo,
   videoModel,
+  videoQuality,
   parseGeminiError,
   setError
 }: UseMediaGenerationParams) {

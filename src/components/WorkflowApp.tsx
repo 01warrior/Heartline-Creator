@@ -34,7 +34,8 @@ export function WorkflowApp() {
     sceneCountMin,
     sceneCountMax,
     animateVideo,
-    videoModel
+    videoModel,
+    videoQuality
   } = useStudioSettings();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
@@ -215,6 +216,7 @@ export function WorkflowApp() {
     selectedVoice,
     animateVideo,
     videoModel,
+    videoQuality,
     parseGeminiError,
     setError
   });
