@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { audioDataToBlob, generateFullPoemAudio, generateImageForPhrase, generateVideoForScene, playPcmAudio } from '../../services/gemini';
+import { calculateActualCost } from '../../utils/costCalculator';
 import type { Scene } from './workflowConfig';
 
 type RightPanelState = 'IDLE' | 'GENERATING' | 'PLAYER';
@@ -42,6 +43,7 @@ export function useMediaGeneration({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
   const [videoStatus, setVideoStatus] = useState<string>('');
+  const [mediaCost, setMediaCost] = useState(0);
 
   useEffect(() => {
     if (fullAudio) {
@@ -155,6 +157,19 @@ export function useMediaGeneration({
 
       completedCount++;
       setGenerationProgress(100);
+      
+      // Calculate actual media cost
+      const fullText = currentScenes.map((scene) => scene.phrase).join('. ');
+      const estimatedAudioSeconds = fullText.length / 15;
+      const videoSeconds = animateVideo ? currentScenes.length * 8 : 0;
+      const actualCost = calculateActualCost(
+        '', 0, 0, // text cost handled separately
+        imageModel, currentScenes.length,
+        ttsModel, estimatedAudioSeconds,
+        videoModel, videoQuality, videoSeconds
+      );
+      setMediaCost(actualCost);
+
       setRightPanelState('PLAYER');
     } catch (err) {
       setError(parseGeminiError(err));
@@ -192,6 +207,7 @@ export function useMediaGeneration({
     rightPanelState,
     setRightPanelState,
     wavUrl,
-    videoStatus
+    videoStatus,
+    mediaCost
   };
 }

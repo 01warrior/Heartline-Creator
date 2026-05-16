@@ -18,6 +18,7 @@ import { useScriptGeneration } from './workflow/useScriptGeneration';
 import { SettingsModal } from './workflow/ui/SettingsModal';
 import { SuggestionsModal } from './workflow/ui/SuggestionsModal';
 import { ErrorModal } from './workflow/ui/ErrorModal';
+import { estimatePoemCost, estimateMediaCost, formatCost } from '../utils/costCalculator';
 
 
 export function WorkflowApp() {
@@ -205,7 +206,8 @@ export function WorkflowApp() {
     rightPanelState,
     setRightPanelState,
     wavUrl,
-    videoStatus
+    videoStatus,
+    mediaCost
   } = useMediaGeneration({
     apiKey,
     scenes,
@@ -232,7 +234,8 @@ export function WorkflowApp() {
     setSuggestions,
     setTopic,
     suggestions,
-    topic
+    topic,
+    scriptCost
   } = useScriptGeneration({
     apiKey,
     scriptModel,
@@ -357,18 +360,25 @@ export function WorkflowApp() {
             <button
               type="submit"
               disabled={isGeneratingPoem || !topic}
-              className="w-full bg-[#F5F2EE] border border-[#E5E1DA] text-[#1A1A1A] font-bold text-sm py-4 rounded-full flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] disabled:opacity-50 hover:bg-[#E5E1DA] shadow-sm"
+              className="w-full bg-[#F5F2EE] border border-[#E5E1DA] text-[#1A1A1A] font-bold text-sm py-4 rounded-full flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] disabled:opacity-50 hover:bg-[#E5E1DA] shadow-sm relative"
             >
-              {isGeneratingPoem ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{t('studio.btnWritingLines')}</span>
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-4 h-4" />
-                  <span>{t('studio.btnGenerateScript')}</span>
-                </>
+              <div className="flex items-center space-x-2">
+                {isGeneratingPoem ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{t('studio.btnWritingLines')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4" />
+                    <span>{t('studio.btnGenerateScript')}</span>
+                  </>
+                )}
+              </div>
+              {!isGeneratingPoem && (
+                <span className="absolute right-6 text-xs text-[#A8A196] font-mono bg-white px-2 py-0.5 rounded-md border border-[#E5E1DA]">
+                  {formatCost(estimatePoemCost(scriptModel, sceneCountMin, sceneCountMax))}
+                </span>
               )}
             </button>
           </form>
@@ -401,10 +411,17 @@ export function WorkflowApp() {
               <button 
                 onClick={handleGenerateMedia}
                 disabled={rightPanelState === 'GENERATING'}
-                className="w-full bg-[#1A1A1A] text-white font-bold rounded-full py-4 flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] hover:bg-black shadow-lg disabled:opacity-50"
+                className="relative w-full bg-[#1A1A1A] text-white font-bold rounded-full py-4 flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] hover:bg-black shadow-lg disabled:opacity-50"
               >
-                  <span>{t('studio.btnStartProduction')}</span>
-                  <CheckCircle2 className="w-4 h-4" />
+                  <div className="flex items-center space-x-2">
+                    <span>{t('studio.btnStartProduction')}</span>
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  {rightPanelState !== 'GENERATING' && (
+                    <span className="absolute right-6 text-xs text-[#A8A196] font-mono bg-[#2A2A2A] px-2 py-0.5 rounded-md">
+                      {formatCost(estimateMediaCost(scenes.length, imageModel, ttsModel, videoModel, videoQuality, animateVideo))}
+                    </span>
+                  )}
               </button>
             </div>
           )}
@@ -471,7 +488,12 @@ export function WorkflowApp() {
                         Library
                      </button>
                    </div>
-                   <div className="text-[10px] font-mono font-bold text-[#C5A880]">{currentSceneIndex + 1} / {scenes.length}</div>
+                   <div className="flex items-center gap-4">
+                     <div className="text-[10px] font-mono font-bold bg-[#F5F2EE] px-2 py-1 rounded-md text-[#7A7570] border border-[#E5E1DA]">
+                       Total: {formatCost(scriptCost + mediaCost)}
+                     </div>
+                     <div className="text-[10px] font-mono font-bold text-[#C5A880]">{currentSceneIndex + 1} / {scenes.length}</div>
+                   </div>
                </div>
 
                <div className="relative bg-black aspect-[9/16] rounded-[2.5rem] overflow-hidden shadow-2xl ring-8 ring-white group flex flex-col justify-center flex-1 min-h-0">

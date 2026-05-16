@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generatePoem, generateTopicSuggestions } from '../../services/gemini';
+import { calculateActualCost } from '../../utils/costCalculator';
 import type { Scene } from './workflowConfig';
 
 type ErrorState = { title: string; message: string } | null;
@@ -32,6 +33,7 @@ export function useScriptGeneration({
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [scriptCost, setScriptCost] = useState(0);
 
   const handleGeneratePoem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,13 @@ export function useScriptGeneration({
       setIsGeneratingPoem(true);
       const phrases = await generatePoem(apiKey, topic, scriptModel, sceneCountMin, sceneCountMax);
       setScenes(phrases.map((phrase) => ({ phrase })));
+      
+      // Calculate actual text cost roughly
+      const outputChars = phrases.join('. ').length;
+      const inputChars = topic.length + 500; // prompt overhead
+      const actualCost = calculateActualCost(scriptModel, inputChars, outputChars, '', 0, '', 0, '', '', 0);
+      setScriptCost(actualCost);
+      
       setFullAudio(null);
       setRightPanelState('IDLE');
     } catch (err) {
@@ -86,6 +95,7 @@ export function useScriptGeneration({
     setTopic,
     setSuggestions,
     suggestions,
-    topic
+    topic,
+    scriptCost
   };
 }
