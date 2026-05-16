@@ -48,8 +48,8 @@ const DEFAULT_SETTINGS = {
   sceneCountMin: 6,
   sceneCountMax: 8,
   animateVideo: false,
-  videoModel: 'veo-3.1-lite-generate-001',
-  videoQuality: '720p'
+  videoModel: 'veo-3.1-generate-preview',
+  videoQuality: '1080p'
 };
 
 const StudioSettingsContext = createContext<StudioSettingsContextValue | null>(null);

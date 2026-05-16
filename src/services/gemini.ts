@@ -302,6 +302,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 export const VIDEO_MODELS = [
+  { id: 'veo-3.1-generate-preview', label: 'Veo 3.1 Preview', supports4K: true },
   { id: 'veo-3.1-lite-generate-001', label: 'Veo 3.1 Lite', supports4K: false },
   { id: 'veo-3.1-fast-generate-001', label: 'Veo 3.1 Fast', supports4K: true },
   { id: 'veo-3.1-generate-001', label: 'Veo 3.1 Standard', supports4K: true },
@@ -316,7 +317,8 @@ export async function generateVideoForScene(
   apiKey: string,
   imageBase64: string,
   phrase: string,
-  videoModel: string = 'veo-3.1-lite-generate-001',
+  videoModel: string = 'veo-3.1-generate-preview',
+  videoQuality: string = '1080p',
   onPollStatus?: (status: string) => void
 ): Promise<string> {
   const ai = getAI(apiKey);
@@ -339,6 +341,7 @@ export async function generateVideoForScene(
     config: {
       aspectRatio: '9:16',
       numberOfVideos: 1,
+      resolution: videoQuality,
     },
   });
 
@@ -354,7 +357,7 @@ export async function generateVideoForScene(
     
     onPollStatus?.(`Generating video... (${pollCount * 10}s)`);
     await new Promise(resolve => setTimeout(resolve, 10000));
-    operation = await ai.operations.get({ operation });
+    operation = await ai.operations.getVideosOperation({ operation });
   }
 
   // 4. Extract the generated video
@@ -366,7 +369,11 @@ export async function generateVideoForScene(
   // 5. Download the video and convert to data URL
   onPollStatus?.('Downloading video...');
   
-  const videoResponse = await fetch(generatedVideo.video.uri);
+  const videoResponse = await fetch(generatedVideo.video.uri, {
+    headers: {
+      'x-goog-api-key': apiKey
+    }
+  });
   if (!videoResponse.ok) {
     throw new Error(`Failed to download generated video: ${videoResponse.status}`);
   }

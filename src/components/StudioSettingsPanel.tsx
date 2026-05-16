@@ -131,11 +131,13 @@ export function StudioSettingsPanel({
   const videoModelOptions = VIDEO_MODELS.map((m) => ({
     value: m.id,
     label: m.label,
-    description: m.id === 'veo-3.1-lite-generate-001' 
-      ? 'Économique — 0.05$/s (720p), 0.08$/s (1080p)' 
-      : m.id === 'veo-3.1-fast-generate-001' 
-        ? 'Rapide — 0.10$/s (720p), 0.30$/s (4K)'
-        : 'Meilleure qualité — 0.40$/s (720p/1080p), 0.60$/s (4K)'
+    description: m.id === 'veo-3.1-generate-preview'
+      ? 'Aperçu (Recommandé) — Supporte toutes les résolutions'
+      : m.id === 'veo-3.1-lite-generate-001' 
+        ? 'Économique — 0.05$/s (720p), 0.08$/s (1080p)' 
+        : m.id === 'veo-3.1-fast-generate-001' 
+          ? 'Rapide — 0.10$/s (720p), 0.30$/s (4K)'
+          : 'Meilleure qualité — 0.40$/s (720p/1080p), 0.60$/s (4K)'
   }));
 
   // Video quality options (conditional on model)

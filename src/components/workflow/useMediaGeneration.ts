@@ -114,6 +114,7 @@ export function useMediaGeneration({
               currentScenes[i].image!,
               currentScenes[i].phrase,
               videoModel,
+              videoQuality,
               (status) => setVideoStatus(`Scène ${i + 1}: ${status}`)
             );
 
