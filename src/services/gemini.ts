@@ -311,6 +311,7 @@ export const VIDEO_MODELS = [
  * Generate a video clip from a scene image using Veo (image-to-video).
  * This is an async long-running operation that requires polling.
  */
+
 export async function generateVideoForScene(
   apiKey: string,
   imageBase64: string,
@@ -320,19 +321,10 @@ export async function generateVideoForScene(
 ): Promise<string> {
   const ai = getAI(apiKey);
 
-  // 1. Convert base64 data URL to a Blob and upload via Files API
-  const imageBlob = base64ToBlob(imageBase64);
+  // 1. Prepare image data (strip base64 prefix)
+  const base64Image = imageBase64.split(',')[1] || imageBase64;
   
   onPollStatus?.('Uploading image...');
-  
-  const uploadedFile = await ai.files.upload({
-    file: imageBlob,
-    config: { mimeType: 'image/jpeg' }
-  });
-
-  if (!uploadedFile.uri) {
-    throw new Error("Failed to upload image for video generation.");
-  }
 
   // 2. Start video generation (long-running operation)
   onPollStatus?.('Starting video generation...');
@@ -341,7 +333,7 @@ export async function generateVideoForScene(
     model: videoModel,
     prompt: `Subtle cinematic movement, gentle atmospheric camera motion, slow-motion feel, dreamy ambiance. Animate this scene: "${phrase}"`,
     image: {
-      fileUri: uploadedFile.uri,
+      imageBytes: base64Image,
       mimeType: 'image/jpeg',
     },
     config: {

@@ -107,14 +107,14 @@ export function useMediaGeneration({
           }
 
           try {
-            setVideoStatus(`🎬 Animation scène ${i + 1}/${currentScenes.length}...`);
+            setVideoStatus(`Animation scène ${i + 1}/${currentScenes.length}...`);
             
             const videoDataUrl = await generateVideoForScene(
               apiKey,
               currentScenes[i].image!,
               currentScenes[i].phrase,
               videoModel,
-              (status) => setVideoStatus(`🎬 Scène ${i + 1}: ${status}`)
+              (status) => setVideoStatus(`Scène ${i + 1}: ${status}`)
             );
 
             const newScenes = [...currentScenes];

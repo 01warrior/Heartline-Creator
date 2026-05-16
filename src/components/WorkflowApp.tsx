@@ -637,7 +637,7 @@ export function WorkflowApp() {
                               </button>
                             </div>
                             <div className="absolute top-3 right-3 px-2 py-0.5 bg-[#C5A880] text-white text-[8px] font-bold uppercase tracking-wider rounded-full shadow-md">
-                              🎬 Animated
+                              Animated
                             </div>
                           </>
                         ) : scene.image ? (

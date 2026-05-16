@@ -14,6 +14,7 @@ function CustomSelect({
   options: { value: string; label: string; description?: string }[];
   onChange: (val: string) => void;
 }) {
+
   const [isOpen, setIsOpen] = React.useState(false);
   const selectedOption = options.find((option) => option.value === value) || options[0];
 
@@ -257,7 +258,7 @@ export function StudioSettingsPanel({
                   <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all ${animateVideo ? 'left-[22px]' : 'left-0.5'}`} />
                 </div>
                 <div className="text-left">
-                  <span className="text-sm font-bold text-[#1A1A1A] block">🎬 Animer les scènes en vidéo</span>
+                  <span className="text-sm font-bold text-[#1A1A1A] block">Animer les scènes en vidéo</span>
                   <span className="text-[10px] text-[#A8A196] leading-tight block mt-0.5">
                     Chaque image sera animée en clip vidéo via Veo (image-to-video)
                   </span>
