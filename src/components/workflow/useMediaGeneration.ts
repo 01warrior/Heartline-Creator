@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { audioDataToBlob, generateFullPoemAudio, generateImageForPhrase, playPcmAudio } from '../../services/gemini';
+import { audioDataToBlob, generateFullPoemAudio, generateImageForPhrase, generateVideoForScene, playPcmAudio } from '../../services/gemini';
 import type { Scene } from './workflowConfig';
 
 type RightPanelState = 'IDLE' | 'GENERATING' | 'PLAYER';
@@ -14,6 +14,8 @@ type UseMediaGenerationParams = {
   imageModel: string;
   ttsModel: string;
   selectedVoice: string;
+  animateVideo: boolean;
+  videoModel: string;
   parseGeminiError: (err: any) => { title: string; message: string };
   setError: React.Dispatch<React.SetStateAction<ErrorState>>;
 };
@@ -26,6 +28,8 @@ export function useMediaGeneration({
   imageModel,
   ttsModel,
   selectedVoice,
+  animateVideo,
+  videoModel,
   parseGeminiError,
   setError
 }: UseMediaGenerationParams) {
@@ -35,6 +39,7 @@ export function useMediaGeneration({
   const [wavUrl, setWavUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
+  const [videoStatus, setVideoStatus] = useState<string>('');
 
   useEffect(() => {
     if (fullAudio) {
@@ -53,13 +58,17 @@ export function useMediaGeneration({
   const handleGenerateMedia = async () => {
     setRightPanelState('GENERATING');
     setGenerationProgress(0);
+    setVideoStatus('');
 
     let completedCount = 0;
-    const totalTasks = scenes.length + 1;
+    // Total tasks: images + (optional videos) + 1 audio
+    const videoTasks = animateVideo ? scenes.length : 0;
+    const totalTasks = scenes.length + videoTasks + 1;
 
     try {
       let currentScenes = [...scenes];
 
+      // ── Phase 1: Generate Images ──────────────────────────────────
       for (let i = 0; i < currentScenes.length; i++) {
         if (currentScenes[i].image) {
           completedCount++;
@@ -87,6 +96,50 @@ export function useMediaGeneration({
         }
       }
 
+      // ── Phase 2: Animate Images to Video (if enabled) ─────────────
+      if (animateVideo) {
+        for (let i = 0; i < currentScenes.length; i++) {
+          // Skip if no image or already has video
+          if (!currentScenes[i].image || currentScenes[i].video) {
+            completedCount++;
+            setGenerationProgress((completedCount / totalTasks) * 100);
+            continue;
+          }
+
+          try {
+            setVideoStatus(`🎬 Animation scène ${i + 1}/${currentScenes.length}...`);
+            
+            const videoDataUrl = await generateVideoForScene(
+              apiKey,
+              currentScenes[i].image!,
+              currentScenes[i].phrase,
+              videoModel,
+              (status) => setVideoStatus(`🎬 Scène ${i + 1}: ${status}`)
+            );
+
+            const newScenes = [...currentScenes];
+            newScenes[i] = { ...newScenes[i], video: videoDataUrl };
+            currentScenes = newScenes;
+            setScenes(newScenes);
+            completedCount++;
+            setGenerationProgress((completedCount / totalTasks) * 100);
+          } catch (e: any) {
+            const errorInfo = parseGeminiError(e);
+            console.error(`Error animating scene ${i}:`, e);
+            // Don't block the rest — continue without video for this scene
+            if (errorInfo.title === 'Quota Exceeded') {
+              setError(errorInfo);
+              // Still continue to audio generation
+              break;
+            }
+            completedCount++;
+            setGenerationProgress((completedCount / totalTasks) * 100);
+          }
+        }
+        setVideoStatus('');
+      }
+
+      // ── Phase 3: Generate Audio TTS ───────────────────────────────
       if (!fullAudio) {
         try {
           const fullText = currentScenes.map((scene) => scene.phrase).join('. ');
@@ -135,6 +188,7 @@ export function useMediaGeneration({
     setFullAudio,
     rightPanelState,
     setRightPanelState,
-    wavUrl
+    wavUrl,
+    videoStatus
   };
 }

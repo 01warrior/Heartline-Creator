@@ -3,6 +3,7 @@ import cinematicImg from '../../assets/cinematic.png';
 export interface Scene {
   phrase: string;
   image?: string;
+  video?: string;  // data URL du clip vidéo animé (mp4) via Veo
 }
 
 export const STYLE_PRESETS = [

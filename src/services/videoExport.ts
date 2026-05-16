@@ -3,7 +3,7 @@ import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { saveAs } from 'file-saver';
 
 export async function exportVideoFast(
-  scenes: { phrase: string; image?: string }[],
+  scenes: { phrase: string; image?: string; video?: string }[],
   wavUrl: string,
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
@@ -26,7 +26,7 @@ export async function exportVideoFast(
       });
 
       const audioDuration = audio.duration;
-      const validScenes = scenes.filter(s => !!s.image);
+      const validScenes = scenes.filter(s => !!s.image || !!s.video);
       if (validScenes.length === 0) throw new Error('Aucune image à exporter');
 
       const durationPerScene = audioDuration / validScenes.length;
@@ -38,18 +38,40 @@ export async function exportVideoFast(
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      const loadedImages = await Promise.all(validScenes.map(async scene => {
-         const img = new Image();
-         if (!scene.image!.startsWith('blob:') && !scene.image!.startsWith('data:')) {
+      // Load images AND videos for each scene
+      const loadedMedia: { img: HTMLImageElement; vid: HTMLVideoElement | null }[] = await Promise.all(
+        validScenes.map(async scene => {
+          // Load fallback image
+          const img = new Image();
+          if (scene.image && !scene.image.startsWith('blob:') && !scene.image.startsWith('data:')) {
             img.crossOrigin = 'anonymous';
-         }
-         await new Promise((r, j) => {
-            img.onload = r;
-            img.onerror = j;
-            img.src = scene.image!;
-         });
-         return img;
-      }));
+          }
+          if (scene.image) {
+            await new Promise((r, j) => {
+              img.onload = r;
+              img.onerror = j;
+              img.src = scene.image!;
+            });
+          }
+
+          // Load video if available
+          let vid: HTMLVideoElement | null = null;
+          if (scene.video) {
+            vid = document.createElement('video');
+            vid.muted = true;
+            vid.loop = true;
+            vid.playsInline = true;
+            await new Promise<void>((r, j) => {
+              vid!.onloadeddata = () => r();
+              vid!.onerror = () => j(new Error('Failed to load scene video'));
+              vid!.src = scene.video!;
+            });
+            vid.play().catch(() => {});
+          }
+
+          return { img, vid };
+        })
+      );
 
       const stream = canvas.captureStream(60);
       let audioStream: MediaStream | null = null;
@@ -107,25 +129,35 @@ export async function exportVideoFast(
           return;
         }
 
-        const targetSceneIndex = Math.min(Math.max(0, Math.floor(elapsed / durationPerScene)), loadedImages.length - 1);
+        const targetSceneIndex = Math.min(Math.max(0, Math.floor(elapsed / durationPerScene)), loadedMedia.length - 1);
         const sceneProgress = (elapsed % durationPerScene) / durationPerScene;
         
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        const img = loadedImages[targetSceneIndex];
+        const media = loadedMedia[targetSceneIndex];
         const scene = validScenes[targetSceneIndex];
         
-        // Image Animation (Smooth Zoom)
-        const baseScale = Math.max(canvas.width / img.width, canvas.height / img.height);
-        const currentScale = baseScale * (1 + sceneProgress * 0.12);
-        
-        const scaledWidth = img.width * currentScale;
-        const scaledHeight = img.height * currentScale;
-        const x = (canvas.width / 2) - (scaledWidth / 2);
-        const y = (canvas.height / 2) - (scaledHeight / 2);
-        
-        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+        // Use video frame if available, otherwise use image with zoom
+        if (media.vid && media.vid.readyState >= 2) {
+          // Draw video frame — cover the canvas
+          const vw = media.vid.videoWidth || canvas.width;
+          const vh = media.vid.videoHeight || canvas.height;
+          const vidScale = Math.max(canvas.width / vw, canvas.height / vh);
+          const sw = vw * vidScale;
+          const sh = vh * vidScale;
+          ctx.drawImage(media.vid, (canvas.width - sw) / 2, (canvas.height - sh) / 2, sw, sh);
+        } else {
+          // Fallback: Image Animation (Smooth Zoom)
+          const img = media.img;
+          const baseScale = Math.max(canvas.width / img.width, canvas.height / img.height);
+          const currentScale = baseScale * (1 + sceneProgress * 0.12);
+          const scaledWidth = img.width * currentScale;
+          const scaledHeight = img.height * currentScale;
+          const x = (canvas.width / 2) - (scaledWidth / 2);
+          const y = (canvas.height / 2) - (scaledHeight / 2);
+          ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+        }
 
         // Subtitles Overlay
         const sceneElapsed = elapsed % durationPerScene;
@@ -205,7 +237,7 @@ export async function exportVideoFast(
 }
 
 export async function exportVideo(
-  scenes: { phrase: string; image?: string }[],
+  scenes: { phrase: string; image?: string; video?: string }[],
   wavUrl: string,
   onProgress?: (progress: number) => void
 ): Promise<Blob> {

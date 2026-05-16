@@ -32,7 +32,9 @@ export function WorkflowApp() {
     imageStyle,
     setImageStyle,
     sceneCountMin,
-    sceneCountMax
+    sceneCountMax,
+    animateVideo,
+    videoModel
   } = useStudioSettings();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
@@ -91,6 +93,13 @@ export function WorkflowApp() {
         const base64Data = scene.image.split(',')[1];
         if (base64Data) {
           zip.file(`scene-${i + 1}.jpg`, base64Data, { base64: true });
+        }
+      }
+      // Add animated videos if available
+      if (scene.video) {
+        const videoBase64 = scene.video.split(',')[1];
+        if (videoBase64) {
+          zip.file(`scene-${i + 1}-animated.mp4`, videoBase64, { base64: true });
         }
       }
     });
@@ -194,7 +203,8 @@ export function WorkflowApp() {
     setFullAudio,
     rightPanelState,
     setRightPanelState,
-    wavUrl
+    wavUrl,
+    videoStatus
   } = useMediaGeneration({
     apiKey,
     scenes,
@@ -203,6 +213,8 @@ export function WorkflowApp() {
     imageModel,
     ttsModel,
     selectedVoice,
+    animateVideo,
+    videoModel,
     parseGeminiError,
     setError
   });
@@ -435,6 +447,11 @@ export function WorkflowApp() {
              <div className="mt-4 text-xs font-mono uppercase tracking-widest text-[#A8A196] font-bold">
                 {Math.floor(generationProgress)}% {t('studio.complete')}
              </div>
+             {videoStatus && (
+               <div className="mt-3 text-xs text-[#C5A880] font-medium animate-pulse">
+                 {videoStatus}
+               </div>
+             )}
            </div>
          )}
 
@@ -456,7 +473,19 @@ export function WorkflowApp() {
                </div>
 
                <div className="relative bg-black aspect-[9/16] rounded-[2.5rem] overflow-hidden shadow-2xl ring-8 ring-white group flex flex-col justify-center flex-1 min-h-0">
-                  {scenes[currentSceneIndex]?.image && (
+                  {scenes[currentSceneIndex]?.video ? (
+                    <div className="absolute inset-0 block bg-black">
+                        <video 
+                          key={`video-${currentSceneIndex}`}
+                          src={scenes[currentSceneIndex].video} 
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                    </div>
+                  ) : scenes[currentSceneIndex]?.image ? (
                     <div className="absolute inset-0 block bg-black">
                         <img 
                           src={scenes[currentSceneIndex].image} 
@@ -466,7 +495,7 @@ export function WorkflowApp() {
                           style={{ transform: isPlaying ? 'scale(1.1)' : 'scale(1)' }} 
                         />
                     </div>
-                  )}
+                  ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-black/40 pointer-events-none"></div>
                   
                   <div className="absolute inset-x-0 bottom-0 z-20 p-8 pt-20 flex flex-col items-start justify-end pointer-events-none">
@@ -590,7 +619,28 @@ export function WorkflowApp() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     {scenes.map((scene, idx) => (
                       <div key={idx} className="group relative bg-white border border-[#E5E1DA] rounded-3xl overflow-hidden shadow-sm aspect-square">
-                        {scene.image ? (
+                        {scene.video ? (
+                          <>
+                            <video src={scene.video} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
+                              <p className="text-white text-[10px] mb-4 line-clamp-3 leading-relaxed">{scene.phrase}</p>
+                              <button 
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = scene.video!;
+                                  link.download = `heartlines-scene-${idx+1}-animated.mp4`;
+                                  link.click();
+                                }}
+                                className="bg-white text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold hover:scale-105 transition-transform"
+                              >
+                                Download MP4
+                              </button>
+                            </div>
+                            <div className="absolute top-3 right-3 px-2 py-0.5 bg-[#C5A880] text-white text-[8px] font-bold uppercase tracking-wider rounded-full shadow-md">
+                              🎬 Animated
+                            </div>
+                          </>
+                        ) : scene.image ? (
                           <>
                             <img src={scene.image} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">

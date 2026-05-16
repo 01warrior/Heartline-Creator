@@ -18,6 +18,12 @@ type StudioSettingsContextValue = {
   setSceneCountMin: (value: number) => void;
   sceneCountMax: number;
   setSceneCountMax: (value: number) => void;
+  animateVideo: boolean;
+  setAnimateVideo: (value: boolean) => void;
+  videoModel: string;
+  setVideoModel: (value: string) => void;
+  videoQuality: string;
+  setVideoQuality: (value: string) => void;
 };
 
 const SETTINGS_STORAGE_KEYS = {
@@ -27,7 +33,10 @@ const SETTINGS_STORAGE_KEYS = {
   selectedVoice: 'STUDIO_SELECTED_VOICE',
   imageStyle: 'STUDIO_IMAGE_STYLE',
   sceneCountMin: 'STUDIO_SCENE_COUNT_MIN',
-  sceneCountMax: 'STUDIO_SCENE_COUNT_MAX'
+  sceneCountMax: 'STUDIO_SCENE_COUNT_MAX',
+  animateVideo: 'STUDIO_ANIMATE_VIDEO',
+  videoModel: 'STUDIO_VIDEO_MODEL',
+  videoQuality: 'STUDIO_VIDEO_QUALITY'
 };
 
 const DEFAULT_SETTINGS = {
@@ -37,7 +46,10 @@ const DEFAULT_SETTINGS = {
   selectedVoice: 'Kore',
   imageStyle: 'cinematic soft noir, 35mm film grain, melancholic warm lighting, ultra-detailed textures, ethereal atmosphere',
   sceneCountMin: 6,
-  sceneCountMax: 8
+  sceneCountMax: 8,
+  animateVideo: false,
+  videoModel: 'veo-3.1-lite-generate-001',
+  videoQuality: '720p'
 };
 
 const StudioSettingsContext = createContext<StudioSettingsContextValue | null>(null);
@@ -64,6 +76,15 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
   );
   const [sceneCountMax, setSceneCountMaxState] = useState(
     () => parseInt(localStorage.getItem(SETTINGS_STORAGE_KEYS.sceneCountMax) || String(DEFAULT_SETTINGS.sceneCountMax), 10)
+  );
+  const [animateVideo, setAnimateVideoState] = useState(
+    () => localStorage.getItem(SETTINGS_STORAGE_KEYS.animateVideo) === 'true'
+  );
+  const [videoModel, setVideoModelState] = useState(
+    () => localStorage.getItem(SETTINGS_STORAGE_KEYS.videoModel) || DEFAULT_SETTINGS.videoModel
+  );
+  const [videoQuality, setVideoQualityState] = useState(
+    () => localStorage.getItem(SETTINGS_STORAGE_KEYS.videoQuality) || DEFAULT_SETTINGS.videoQuality
   );
 
   const setApiKey = (key: string) => {
@@ -111,6 +132,21 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
     setSceneCountMaxState(value);
   };
 
+  const setAnimateVideo = (value: boolean) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.animateVideo, String(value));
+    setAnimateVideoState(value);
+  };
+
+  const setVideoModel = (value: string) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.videoModel, value);
+    setVideoModelState(value);
+  };
+
+  const setVideoQuality = (value: string) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.videoQuality, value);
+    setVideoQualityState(value);
+  };
+
   const value = useMemo(
     () => ({
       apiKey,
@@ -129,9 +165,15 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
       sceneCountMin,
       setSceneCountMin,
       sceneCountMax,
-      setSceneCountMax
+      setSceneCountMax,
+      animateVideo,
+      setAnimateVideo,
+      videoModel,
+      setVideoModel,
+      videoQuality,
+      setVideoQuality
     }),
-    [apiKey, scriptModel, imageModel, ttsModel, selectedVoice, imageStyle, sceneCountMin, sceneCountMax]
+    [apiKey, scriptModel, imageModel, ttsModel, selectedVoice, imageStyle, sceneCountMin, sceneCountMax, animateVideo, videoModel, videoQuality]
   );
 
   return <StudioSettingsContext.Provider value={value}>{children}</StudioSettingsContext.Provider>;

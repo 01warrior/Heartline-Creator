@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AVAILABLE_VOICES } from '../services/gemini';
+import { AVAILABLE_VOICES, VIDEO_MODELS } from '../services/gemini';
 import { useStudioSettings } from './StudioSettingsContext';
 
 function CustomSelect({
@@ -75,7 +75,7 @@ export function StudioSettingsPanel({
 }: {
   showApiKeyActions?: boolean;
   onClose?: () => void;
-  visibleSections?: Array<'models' | 'voice' | 'security' | 'style' | 'script'>;
+  visibleSections?: Array<'models' | 'voice' | 'security' | 'style' | 'script' | 'animation'>;
   showSectionHeaders?: boolean;
 }) {
   const { t } = useTranslation();
@@ -94,7 +94,13 @@ export function StudioSettingsPanel({
     sceneCountMin,
     setSceneCountMin,
     sceneCountMax,
-    setSceneCountMax
+    setSceneCountMax,
+    animateVideo,
+    setAnimateVideo,
+    videoModel,
+    setVideoModel,
+    videoQuality,
+    setVideoQuality
   } = useStudioSettings();
 
   const scriptModelOptions = [
@@ -119,6 +125,25 @@ export function StudioSettingsPanel({
     label: voice,
     description: voice === 'Kore' || voice === 'Aoede' ? t('studio.labels.femSoft') : t('studio.labels.maleDeep')
   }));
+
+  // Video model options
+  const videoModelOptions = VIDEO_MODELS.map((m) => ({
+    value: m.id,
+    label: m.label,
+    description: m.id === 'veo-3.1-lite-generate-001' 
+      ? 'Économique — 0.05$/s (720p), 0.08$/s (1080p)' 
+      : m.id === 'veo-3.1-fast-generate-001' 
+        ? 'Rapide — 0.10$/s (720p), 0.30$/s (4K)'
+        : 'Meilleure qualité — 0.40$/s (720p/1080p), 0.60$/s (4K)'
+  }));
+
+  // Video quality options (conditional on model)
+  const selectedVideoModel = VIDEO_MODELS.find(m => m.id === videoModel);
+  const videoQualityOptions = [
+    { value: '720p', label: '720p', description: 'HD — Économique' },
+    { value: '1080p', label: '1080p', description: 'Full HD — Recommandé' },
+    ...(selectedVideoModel?.supports4K ? [{ value: '4k', label: '4K', description: 'Ultra HD — Premium (non disponible sur Lite)' }] : [])
+  ];
 
   const selectConfigs = [
     {
@@ -147,7 +172,7 @@ export function StudioSettingsPanel({
     }
   ];
 
-  const shouldShowSection = (sectionId: 'models' | 'voice' | 'security' | 'style' | 'script') =>
+  const shouldShowSection = (sectionId: 'models' | 'voice' | 'security' | 'style' | 'script' | 'animation') =>
     !visibleSections || visibleSections.includes(sectionId);
 
   return (
@@ -201,6 +226,85 @@ export function StudioSettingsPanel({
               />
             ))}
           </div>
+        </section>
+      )}
+
+      {shouldShowSection('animation') && (
+        <section id="animation" className="space-y-6">
+          {showSectionHeaders && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A8A196]">Animation</p>
+              <h3 className="text-xl font-sans font-bold text-[#1A1A1A] mt-2">Animation Vidéo (Veo)</h3>
+              <p className="text-sm text-[#7A7570] mt-2">
+                Animez vos scènes en clips vidéo cinématiques avec Veo 3.1.
+              </p>
+            </div>
+          )}
+
+          {/* Toggle Animate Video */}
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setAnimateVideo(!animateVideo)}
+              className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all shadow-sm ${
+                animateVideo 
+                  ? 'border-[#C5A880] bg-[#C5A880]/5' 
+                  : 'border-[#E5E1DA] bg-white hover:border-[#C5A880]/50'
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-7 rounded-full relative transition-colors ${animateVideo ? 'bg-[#C5A880]' : 'bg-[#E5E1DA]'}`}>
+                  <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all ${animateVideo ? 'left-[22px]' : 'left-0.5'}`} />
+                </div>
+                <div className="text-left">
+                  <span className="text-sm font-bold text-[#1A1A1A] block">🎬 Animer les scènes en vidéo</span>
+                  <span className="text-[10px] text-[#A8A196] leading-tight block mt-0.5">
+                    Chaque image sera animée en clip vidéo via Veo (image-to-video)
+                  </span>
+                </div>
+              </div>
+              {animateVideo && (
+                <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-widest rounded-full shrink-0">
+                  Payant
+                </span>
+              )}
+            </button>
+
+            {/* Warning about costs */}
+            {animateVideo && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  <strong>⚠️ API payante requise</strong> — La génération vidéo Veo nécessite un billing actif sur votre compte Google Cloud. 
+                  Coût estimé pour 6 scènes (~30s) : <strong>~{videoModel === 'veo-3.1-lite-generate-001' ? '1.50$' : videoModel === 'veo-3.1-fast-generate-001' ? '3.00$' : '12.00$'}</strong> en {videoQuality}.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Video model & quality selectors (shown only when animation is enabled) */}
+          {animateVideo && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <CustomSelect
+                label="Modèle Vidéo"
+                value={videoModel}
+                onChange={(val) => {
+                  setVideoModel(val);
+                  // Reset quality to 1080p if switching to a model that doesn't support current quality
+                  const newModel = VIDEO_MODELS.find(m => m.id === val);
+                  if (!newModel?.supports4K && videoQuality === '4k') {
+                    setVideoQuality('1080p');
+                  }
+                }}
+                options={videoModelOptions}
+              />
+              <CustomSelect
+                label="Qualité Vidéo"
+                value={videoQuality}
+                onChange={setVideoQuality}
+                options={videoQualityOptions}
+              />
+            </div>
+          )}
         </section>
       )}
 
