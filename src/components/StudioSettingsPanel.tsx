@@ -133,9 +133,9 @@ export function StudioSettingsPanel({
     label: m.label,
     description: m.id === 'veo-3.1-generate-preview'
       ? 'Aperçu (Recommandé) — Supporte toutes les résolutions'
-      : m.id === 'veo-3.1-lite-generate-001' 
+      : m.id === 'veo-3.1-lite-generate-preview' 
         ? 'Économique — 0.05$/s (720p), 0.08$/s (1080p)' 
-        : m.id === 'veo-3.1-fast-generate-001' 
+        : m.id === 'veo-3.1-fast-generate-preview' 
           ? 'Rapide — 0.10$/s (720p), 0.30$/s (4K)'
           : 'Meilleure qualité — 0.40$/s (720p/1080p), 0.60$/s (4K)'
   }));
@@ -278,7 +278,7 @@ export function StudioSettingsPanel({
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 <p className="text-xs text-amber-800 leading-relaxed">
                   <strong>⚠️ API payante requise</strong> — La génération vidéo Veo nécessite un billing actif sur votre compte Google Cloud. 
-                  Coût estimé pour 6 scènes (~30s) : <strong>~{videoModel === 'veo-3.1-lite-generate-001' ? '1.50$' : videoModel === 'veo-3.1-fast-generate-001' ? '3.00$' : '12.00$'}</strong> en {videoQuality}.
+                  Coût estimé pour 6 scènes (~30s) : <strong>~{videoModel === 'veo-3.1-lite-generate-preview' ? '1.50$' : videoModel === 'veo-3.1-fast-generate-preview' ? '3.00$' : '12.00$'}</strong> en {videoQuality}.
                 </p>
               </div>
             )}

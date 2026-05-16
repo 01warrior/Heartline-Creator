@@ -303,9 +303,8 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 
 export const VIDEO_MODELS = [
   { id: 'veo-3.1-generate-preview', label: 'Veo 3.1 Preview', supports4K: true },
-  { id: 'veo-3.1-lite-generate-001', label: 'Veo 3.1 Lite', supports4K: false },
-  { id: 'veo-3.1-fast-generate-001', label: 'Veo 3.1 Fast', supports4K: true },
-  { id: 'veo-3.1-generate-001', label: 'Veo 3.1 Standard', supports4K: true },
+  { id: 'veo-3.1-lite-generate-preview', label: 'Veo 3.1 Lite', supports4K: false },
+  { id: 'veo-3.1-fast-generate-preview', label: 'Veo 3.1 Fast', supports4K: true },
 ];
 
 /**

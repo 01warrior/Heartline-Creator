@@ -26,9 +26,8 @@ const TTS_MODELS = {
 // Prices per Second of video
 const VIDEO_MODELS = {
   'veo-3.1-generate-preview': { '720p': 0.40, '1080p': 0.40, '4k': 0.60, default: 0.40 },
-  'veo-3.1-fast-generate-001': { '720p': 0.10, '1080p': 0.12, '4k': 0.30, default: 0.12 },
-  'veo-3.1-lite-generate-001': { '720p': 0.05, '1080p': 0.08, '4k': 0.08, default: 0.08 },
-  'veo-3.1-generate-001': { '720p': 0.40, '1080p': 0.40, '4k': 0.60, default: 0.40 }, // Standard fallback
+  'veo-3.1-fast-generate-preview': { '720p': 0.10, '1080p': 0.12, '4k': 0.30, default: 0.12 },
+  'veo-3.1-lite-generate-preview': { '720p': 0.05, '1080p': 0.08, '4k': 0.08, default: 0.08 }
 };
 
 /**
