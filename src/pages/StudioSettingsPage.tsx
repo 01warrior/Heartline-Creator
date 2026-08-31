@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiKeyInput } from './ApiKeyInput';
-import { StudioSettingsPanel } from './StudioSettingsPanel';
-import { useStudioSettings } from './StudioSettingsContext';
+import { ApiKeyInput } from '../components/studio/ApiKeyInput';
+import { StudioSettingsPanel } from '../components/studio/StudioSettingsPanel';
+import { useStudioSettings } from '../context/StudioSettingsContext';
 
 export function StudioSettingsPage() {
   const { t } = useTranslation();

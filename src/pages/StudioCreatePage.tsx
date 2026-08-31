@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { playPcmAudio, audioDataToBlob } from '../services/gemini';
 import { exportVideo, exportVideoFast } from '../services/videoExport';
-import { ApiKeyInput } from './ApiKeyInput';
-import { useStudioSettings } from './StudioSettingsContext';
-import { LanguageSelector } from './LanguageSelector';
+import { ApiKeyInput } from '../components/studio/ApiKeyInput';
+import { useStudioSettings } from '../context/StudioSettingsContext';
+import { LanguageSelector } from '../components/common/LanguageSelector';
 import { Loader2, Play, CheckCircle2, Check, Wand2, Edit3, Image as ImageIcon, Music, X, Sparkles, Download, Archive, Video, Share2, Facebook, Youtube } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CogIcon, FeatherIcon } from '@hugeicons/core-free-icons';
@@ -12,16 +12,16 @@ import { saveAs } from 'file-saver';
 import { useTranslation } from 'react-i18next';
 import Lottie from 'lottie-react';
 import loadingAnimation from '../assets/loading.json';
-import { STYLE_PRESETS, type Scene } from './workflow/workflowConfig';
-import { useMediaGeneration } from './workflow/useMediaGeneration';
-import { useScriptGeneration } from './workflow/useScriptGeneration';
-import { SettingsModal } from './workflow/ui/SettingsModal';
-import { SuggestionsModal } from './workflow/ui/SuggestionsModal';
-import { ErrorModal } from './workflow/ui/ErrorModal';
+import { STYLE_PRESETS, type Scene } from '../components/workflow/workflowConfig';
+import { useMediaGeneration } from '../components/workflow/useMediaGeneration';
+import { useScriptGeneration } from '../components/workflow/useScriptGeneration';
+import { SettingsModal } from '../components/workflow/ui/SettingsModal';
+import { SuggestionsModal } from '../components/workflow/ui/SuggestionsModal';
+import { ErrorModal } from '../components/workflow/ui/ErrorModal';
 import { estimatePoemCost, estimateMediaCost, formatCost } from '../utils/costCalculator';
 
 
-export function WorkflowApp() {
+export function StudioCreatePage() {
   const { t } = useTranslation();
   const {
     apiKey,
@@ -275,7 +275,7 @@ export function WorkflowApp() {
               <LanguageSelector />
               <button 
                 onClick={() => setIsSettingsOpen(true)}
-                className="h-[46px] px-4 bg-white border border-[#E5E1DA] rounded-2xl text-[#A8A196] hover:text-[#C5A880] hover:border-[#C5A880] transition-all shadow-sm flex items-center gap-2 group"
+                className="h-[46px] px-4 bg-white border border-[#E5E1DA] rounded-2xl text-[#A8A196] hover:text-[#C5A880] hover:border-[#C5A880] transition-all shadow-sm flex items-center gap-2 group cursor-pointer"
               >
                 <HugeiconsIcon icon={CogIcon} className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" color="currentColor" strokeWidth={2.25} />
                 <span className="text-[10px] uppercase tracking-widest font-bold lg:hidden">{t('studio.settings')}</span>
@@ -302,7 +302,7 @@ export function WorkflowApp() {
                         type="button"
                         disabled={isSuggesting}
                         onClick={handleOpenSuggestions}
-                        className="p-2 bg-[#FAF9F7] text-[#A8A196] hover:text-[#C5A880] rounded-xl transition-all shadow-sm border border-[#E5E1DA] disabled:opacity-50"
+                        className="p-2 bg-[#FAF9F7] text-[#A8A196] hover:text-[#C5A880] rounded-xl transition-all shadow-sm border border-[#E5E1DA] disabled:opacity-50 cursor-pointer"
                         aria-label={t('studio.tooltipSuggest')}
                       >
                         <HugeiconsIcon icon={FeatherIcon} className={`w-4 h-4 ${isSuggesting ? 'animate-pulse' : ''}`} color="currentColor" strokeWidth={2.25} />
@@ -324,7 +324,7 @@ export function WorkflowApp() {
                       key={preset.id}
                       type="button"
                       onClick={() => setImageStyle(preset.prompt)}
-                      className="group relative flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all hover:border-[#C5A880] focus:outline-none"
+                      className="group relative flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all hover:border-[#C5A880] focus:outline-none cursor-pointer"
                       style={{
                         borderColor: imageStyle === preset.prompt ? '#C5A880' : '#E5E1DA',
                         backgroundColor: imageStyle === preset.prompt ? '#FDFCFB' : 'white',
@@ -360,7 +360,7 @@ export function WorkflowApp() {
             <button
               type="submit"
               disabled={isGeneratingPoem || !topic}
-              className="w-full bg-[#F5F2EE] border border-[#E5E1DA] text-[#1A1A1A] font-bold text-sm py-4 rounded-full flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] disabled:opacity-50 hover:bg-[#E5E1DA] shadow-sm relative"
+              className="w-full bg-[#F5F2EE] border border-[#E5E1DA] text-[#1A1A1A] font-bold text-sm py-4 rounded-full flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] disabled:opacity-50 hover:bg-[#E5E1DA] shadow-sm relative cursor-pointer"
             >
               <div className="flex items-center space-x-2">
                 {isGeneratingPoem ? (
@@ -411,7 +411,7 @@ export function WorkflowApp() {
               <button 
                 onClick={handleGenerateMedia}
                 disabled={rightPanelState === 'GENERATING'}
-                className="relative w-full bg-[#1A1A1A] text-white font-bold rounded-full py-4 flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] hover:bg-black shadow-lg disabled:opacity-50"
+                className="relative w-full bg-[#1A1A1A] text-white font-bold rounded-full py-4 flex items-center justify-center space-x-2 transition-transform active:scale-[0.98] hover:bg-black shadow-lg disabled:opacity-50 cursor-pointer"
               >
                   <div className="flex items-center space-x-2">
                     <span>{t('studio.btnStartProduction')}</span>
@@ -482,7 +482,7 @@ export function WorkflowApp() {
                      <h3 className="uppercase text-[10px] font-bold tracking-widest text-[#A8A196]">{t('studio.previewMode')}</h3>
                      <button 
                         onClick={() => setIsAssetsModalOpen(true)}
-                        className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E1DA] rounded-lg text-[9px] font-bold uppercase tracking-tighter text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm"
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E1DA] rounded-lg text-[9px] font-bold uppercase tracking-tighter text-[#1A1A1A] hover:border-[#C5A880] transition-all shadow-sm cursor-pointer"
                      >
                         <Archive className="w-3 h-3 text-[#C5A880]" />
                         Library
@@ -542,7 +542,7 @@ export function WorkflowApp() {
                   {!isPlaying && (
                       <button 
                           onClick={playSequence}
-                          className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all hover:bg-black/30 z-30"
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all hover:bg-black/30 z-30 cursor-pointer"
                       >
                           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-95 text-[#1A1A1A]">
                               <Play className="w-6 h-6 ml-1 fill-current" />
@@ -607,7 +607,7 @@ export function WorkflowApp() {
                     <button 
                       onClick={handleExportFast}
                       disabled={isExportingVideo}
-                      className="flex items-center gap-2 bg-[#C5A880] text-white px-4 py-2 rounded-full text-xs font-bold tracking-wide hover:bg-[#B3966D] transition-colors disabled:opacity-75 disabled:cursor-wait"
+                      className="flex items-center gap-2 bg-[#C5A880] text-white px-4 py-2 rounded-full text-xs font-bold tracking-wide hover:bg-[#B3966D] transition-colors disabled:opacity-75 disabled:cursor-wait cursor-pointer"
                       title={t('studio.fastExportTitle')}
                     >
                       {isExportingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
@@ -616,7 +616,7 @@ export function WorkflowApp() {
                     <button 
                       onClick={handleExportMP4}
                       disabled={isExportingVideo}
-                      className="flex items-center gap-2 bg-transparent text-[#1A1A1A] px-4 py-2 rounded-full border border-transparent text-xs font-bold tracking-wide hover:bg-[#F5F2EE] transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 bg-transparent text-[#1A1A1A] px-4 py-2 rounded-full border border-transparent text-xs font-bold tracking-wide hover:bg-[#F5F2EE] transition-colors disabled:opacity-50 cursor-pointer"
                       title={t('studio.hqExportTitle')}
                     >
                       {t('studio.btnHqExport')}
@@ -625,12 +625,12 @@ export function WorkflowApp() {
                   <button 
                     onClick={handleDownloadAllZip}
                     disabled={isExportingVideo}
-                    className="flex items-center gap-2 bg-[#1A1A1A] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-black transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[#1A1A1A] text-white px-6 py-2.5 rounded-full text-sm font-bold tracking-wide hover:bg-black transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <Archive className="w-4 h-4" />
                     {t('studio.btnDownloadAll')}
                   </button>
-                  <button onClick={() => setIsAssetsModalOpen(false)} disabled={isExportingVideo} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors disabled:opacity-50">
+                  <button onClick={() => setIsAssetsModalOpen(false)} disabled={isExportingVideo} className="bg-white border border-[#E5E1DA] p-2 rounded-full text-[#A8A196] hover:text-[#1A1A1A] transition-colors disabled:opacity-50 cursor-pointer">
                     <X className="w-6 h-6" />
                   </button>
                 </div>
@@ -655,7 +655,7 @@ export function WorkflowApp() {
                                   link.download = `heartlines-scene-${idx+1}-animated.mp4`;
                                   link.click();
                                 }}
-                                className="bg-white text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold hover:scale-105 transition-transform"
+                                className="bg-white text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold hover:scale-105 transition-transform cursor-pointer"
                               >
                                 Download MP4
                               </button>
@@ -671,7 +671,7 @@ export function WorkflowApp() {
                               <p className="text-white text-[10px] mb-4 line-clamp-3 leading-relaxed">{scene.phrase}</p>
                               <button 
                                 onClick={() => downloadImage(scene.image!, idx)}
-                                className="bg-white text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold hover:scale-105 transition-transform"
+                                className="bg-white text-[#1A1A1A] px-4 py-2 rounded-full text-xs font-bold hover:scale-105 transition-transform cursor-pointer"
                               >
                                 Download PNG
                               </button>
@@ -713,7 +713,7 @@ export function WorkflowApp() {
                                console.error(e);
                             }
                           }}
-                          className="flex items-center justify-center gap-2 bg-[#F5F2EE] border border-[#E5E1DA] rounded-full px-6 py-3 text-sm font-bold text-[#1A1A1A] hover:bg-white transition-all w-full md:w-auto shadow-sm"
+                          className="flex items-center justify-center gap-2 bg-[#F5F2EE] border border-[#E5E1DA] rounded-full px-6 py-3 text-sm font-bold text-[#1A1A1A] hover:bg-white transition-all w-full md:w-auto shadow-sm cursor-pointer"
                         >
                            <Play className="w-4 h-4 ml-1" />
                            Preview Audio
@@ -725,7 +725,7 @@ export function WorkflowApp() {
                             link.download = "heartlines-narration.wav";
                             link.click();
                           }}
-                          className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-[#A8A196] hover:text-[#C5A880] transition-colors mt-1"
+                          className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-[#A8A196] hover:text-[#C5A880] transition-colors mt-1 cursor-pointer"
                         >
                           <Download className="w-4 h-4" />
                           Download WAV
@@ -759,7 +759,7 @@ export function WorkflowApp() {
                        {exportedVideoBlob && (
                          <button 
                            onClick={handleShareVideo}
-                           className="flex items-center gap-3 bg-white text-black px-8 py-4 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl"
+                           className="flex items-center gap-3 bg-white text-black px-8 py-4 rounded-full font-bold hover:scale-105 active:scale-95 transition-all shadow-xl cursor-pointer"
                          >
                             <Share2 className="w-5 h-5" />
                             Partager la Vidéo

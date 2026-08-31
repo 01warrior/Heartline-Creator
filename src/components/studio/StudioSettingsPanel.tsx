@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AVAILABLE_VOICES, VIDEO_MODELS } from '../services/gemini';
-import { useStudioSettings } from './StudioSettingsContext';
+import { AVAILABLE_VOICES, VIDEO_MODELS } from '../../services/gemini';
+import { useStudioSettings } from '../../context/StudioSettingsContext';
 
 function CustomSelect({
   label,
@@ -24,7 +24,7 @@ function CustomSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-white border border-[#E5E1DA] p-4 rounded-2xl text-left flex items-center justify-between hover:border-[#C5A880] transition-all shadow-sm group"
+        className="w-full bg-white border border-[#E5E1DA] p-4 rounded-2xl text-left flex items-center justify-between hover:border-[#C5A880] transition-all shadow-sm group cursor-pointer"
       >
         <div className="flex flex-col">
           <span className="text-sm font-bold text-[#1A1A1A]">{selectedOption.label}</span>
@@ -50,7 +50,7 @@ function CustomSelect({
                     onChange(option.value);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-4 py-2.5 hover:bg-[#FAF9F7] transition-colors border-b border-[#F5F2EE] last:border-0 flex flex-col ${value === option.value ? 'bg-[#C5A880]/5' : ''}`}
+                  className={`w-full text-left px-4 py-2.5 hover:bg-[#FAF9F7] transition-colors border-b border-[#F5F2EE] last:border-0 flex flex-col cursor-pointer ${value === option.value ? 'bg-[#C5A880]/5' : ''}`}
                 >
                   <span className={`text-xs font-bold ${value === option.value ? 'text-[#C5A880]' : 'text-[#1A1A1A]'}`}>
                     {option.label}
@@ -249,7 +249,7 @@ export function StudioSettingsPanel({
             <button
               type="button"
               onClick={() => setAnimateVideo(!animateVideo)}
-              className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all shadow-sm ${
+              className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all shadow-sm cursor-pointer ${
                 animateVideo 
                   ? 'border-[#C5A880] bg-[#C5A880]/5' 
                   : 'border-[#E5E1DA] bg-white hover:border-[#C5A880]/50'
@@ -326,7 +326,7 @@ export function StudioSettingsPanel({
           <div className="pt-2">
             <button
               onClick={clearApiKey}
-              className="text-xs font-bold tracking-widest uppercase text-[#A8A196] hover:text-[#1A1A1A] transition-colors"
+              className="text-xs font-bold tracking-widest uppercase text-[#A8A196] hover:text-[#1A1A1A] transition-colors cursor-pointer"
             >
               {t('studio.btnRemoveKey')}
             </button>
@@ -425,7 +425,7 @@ export function StudioSettingsPanel({
         <div className="pt-4">
           <button
             onClick={onClose}
-            className="w-full bg-[#1A1A1A] text-white font-bold py-4 rounded-full transition-transform active:scale-95 hover:bg-black shadow-lg"
+            className="w-full bg-[#1A1A1A] text-white font-bold py-4 rounded-full transition-transform active:scale-95 hover:bg-black shadow-lg cursor-pointer"
           >
             {t('studio.btnSaveConfig')}
           </button>

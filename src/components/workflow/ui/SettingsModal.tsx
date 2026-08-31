@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { StudioSettingsPanel } from '../../StudioSettingsPanel';
+import { StudioSettingsPanel } from '../../studio/StudioSettingsPanel';
 
 type SettingsModalProps = {
   isOpen: boolean;

@@ -5,11 +5,11 @@
 
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Search, Filter, Video, FolderOpen, Plus, Sparkles, ArrowRight } from 'lucide-react';
-import { WorkflowApp } from './components/WorkflowApp';
-import { LandingPage } from './components/LandingPage';
+import { StudioCreatePage } from './pages/StudioCreatePage';
+import { LandingPage } from './pages/LandingPage';
 import { StudioLayout } from './components/layout/StudioLayout';
-import { StudioSettingsProvider } from './components/StudioSettingsContext';
-import { StudioSettingsPage } from './components/StudioSettingsPage';
+import { StudioSettingsProvider } from './context/StudioSettingsContext';
+import { StudioSettingsPage } from './pages/StudioSettingsPage';
 
 function StudioEmptyState({
   title,
@@ -133,7 +133,7 @@ export default function App() {
             </StudioSettingsProvider>
           }
         >
-          <Route index element={<WorkflowApp />} />
+          <Route index element={<StudioCreatePage />} />
           <Route path="settings" element={<StudioSettingsPage />} />
           <Route path="videos" element={
             <StudioEmptyState
