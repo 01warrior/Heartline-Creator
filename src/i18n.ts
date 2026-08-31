@@ -51,11 +51,19 @@ const resources = {
       },
       apiKey: {
         title: 'Welcome to Heartlines',
-        description: 'Aesthetic video generator. Please enter your Gemini API Key. It will be stored locally in your browser.',
-        label: 'Gemini API Key',
-        placeholder: 'AIzaSy...',
-        submit: 'Start Editing',
-        premium: 'Become Premium'
+        subtitle: 'Poetic & Emotional Video Creation Studio',
+        description: 'Heartlines uses Google Gemini AI to generate stories, 4K visuals, and voiceovers.',
+        whyTitle: 'Why is an API Key required?',
+        whyDesc: 'Connecting your own Gemini key allows you to generate content for free without any subscription fees or usage limits imposed by intermediary servers.',
+        securityBadge: '100% Local & Secure',
+        securityDesc: 'Your API key is stored strictly inside your browser\'s localStorage. It is never sent to or saved on any external server.',
+        label: 'Your Gemini API Key',
+        placeholder: 'Paste your key here (e.g. AIzaSy...)',
+        submit: 'Enter the Studio',
+        getKey: 'Get a free Gemini Key on Google AI Studio',
+        trust1: 'Zero server storage',
+        trust2: 'Direct connection to Google AI',
+        trust3: 'Instant free setup'
       },
       studio: {
         editorTitle: 'Heartlines',
@@ -163,11 +171,19 @@ const resources = {
       },
       apiKey: {
         title: 'Bienvenue sur Heartlines',
-        description: 'Générateur de vidéos esthétiques. Veuillez entrer votre clé API Gemini. Elle sera stockée localement dans votre navigateur.',
-        label: 'Clé API Gemini',
-        placeholder: 'AIzaSy...',
-        submit: 'Commencer l\'Édition',
-        premium: 'Devenir Premium'
+        subtitle: 'Studio de création vidéo poétique & émotionnel',
+        description: 'Heartlines utilise l\'IA Google Gemini pour générer vos récits, vos visuels 4K et vos narrations vocales.',
+        whyTitle: 'Pourquoi une clé API Gemini ?',
+        whyDesc: 'Utiliser votre propre clé Gemini vous permet de créer du contenu librement et gratuitement, sans frais d\'abonnement ni intermédiaire.',
+        securityBadge: '100% Stockage Local & Sécurisé',
+        securityDesc: 'Votre clé API est conservée exclusivement dans le localStorage de votre navigateur. Elle ne transite et ne sera JAMAIS enregistrée sur aucun serveur tiers.',
+        label: 'Votre Clé API Gemini',
+        placeholder: 'Collez votre clé ici (ex: AIzaSy...)',
+        submit: 'Accéder au Studio',
+        getKey: 'Obtenir ma clé Gemini gratuite sur Google AI Studio',
+        trust1: 'Zéro serveur tiers',
+        trust2: 'Connexion directe Google IA',
+        trust3: 'Configuration rapide'
       },
       studio: {
         editorTitle: 'Heartlines',
