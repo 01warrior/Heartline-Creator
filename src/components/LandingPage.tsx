@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, 
   Sparkles, 
@@ -13,7 +13,13 @@ import {
   Star, 
   Volume2, 
   Film,
-  Globe
+  Globe,
+  Instagram,
+  Facebook,
+  Youtube,
+  Music2,
+  Menu as MenuIcon,
+  X as CloseIcon
 } from 'lucide-react';
 import { useTranslation, Trans } from 'react-i18next';
 import { LanguageSelector } from './LanguageSelector';
@@ -22,43 +28,181 @@ export function LandingPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isPlayingDemo, setIsPlayingDemo] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const testimonials = t('testimonials.quotes', { returnObjects: true }) as Array<{name: string, platform: string, text: string}>;
   const row1 = testimonials.slice(0, 5);
   const row2 = testimonials.slice(5, 10);
 
+  const navLinks = [
+    { href: '#demo-showcase', label: 'Démo' },
+    { href: '#features-showcase', label: 'Fonctionnalités' },
+    { href: '#privacy-section', label: 'Sécurité' },
+    { href: '#testimonials-section', label: 'Avis' }
+  ];
+
   return (
-    <div className="min-h-screen bg-[#FAF9F7] text-[#1A1A1A] font-sans selection:bg-[#C5A880] selection:text-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAF9F7] text-[#1A1A1A] font-sans selection:bg-[#C5A880] selection:text-white relative overflow-x-clip">
       
       {/* Sticky Glassmorphism Navigation */}
       <motion.header 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/75 border-b border-[#E5E1DA]/70 transition-all"
+        className="sticky top-0 z-[100] w-full backdrop-blur-md bg-white/90 border-b border-[#E5E1DA] shadow-sm transition-all"
       >
         <nav className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
             <span className="font-bold text-xl tracking-tight text-[#1A1A1A]">Heartlines</span>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center gap-8 font-semibold text-xs uppercase tracking-wider text-[#70685C]">
+            {navLinks.map((link) => (
+              <a 
+                key={link.href}
+                href={link.href}
+                className="hover:text-[#1A1A1A] transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Right Action Controls */}
+          <div className="flex items-center gap-3">
             <LanguageSelector />
             <motion.button 
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => navigate('/studio')}
-              className="px-6 h-[44px] bg-[#1A1A1A] text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-[#333333] transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              className="px-5 sm:px-6 h-[44px] bg-[#1A1A1A] text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-[#333333] transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               <span>{t('nav.studio')}</span>
               <ArrowRight className="w-4 h-4 text-[#C5A880]" />
             </motion.button>
+            <motion.a 
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              href="https://github.com/01warrior/Heartline-Creator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex px-5 h-[44px] bg-white border border-[#E5E1DA] text-[#1A1A1A] rounded-2xl text-xs font-bold uppercase tracking-wider hover:border-[#1A1A1A] transition-all shadow-sm items-center gap-2 cursor-pointer"
+            >
+              <Globe className="w-4 h-4 text-[#70685C]" />
+              <span>GitHub</span>
+            </motion.a>
+
+            {/* Mobile Hamburger Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2.5 text-[#1A1A1A] bg-white border border-[#E5E1DA] rounded-xl hover:bg-[#FAF9F7] transition-colors"
+              aria-label="Menu"
+            >
+              {isMobileMenuOpen ? <CloseIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+            </button>
           </div>
         </nav>
+
+        {/* Mobile Navigation Drawer */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="md:hidden bg-white border-t border-[#E5E1DA] px-6 py-4 flex flex-col gap-4 overflow-hidden"
+            >
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="font-bold text-sm text-[#1A1A1A] hover:text-[#C5A880] transition-colors py-1"
+                >
+                  {link.label}
+                </a>
+              ))}
+              <a
+                href="https://github.com/01warrior/Heartline-Creator"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-sm text-[#70685C] flex items-center gap-2 pt-2 border-t border-[#E5E1DA]"
+              >
+                <Globe className="w-4 h-4" />
+                <span>GitHub Repository</span>
+              </a>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.header>
 
-      {/* Hero Section */}
+      {/* Hero Section with Floating Social Network Badges */}
       <section className="w-full max-w-7xl mx-auto px-6 pt-12 md:pt-20 pb-16 text-center relative z-10">
+        
+        {/* Floating Social Icons (Left Side - Positioned lower next to subtitle & buttons) */}
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0, y: [0, -10, 0] }}
+          transition={{ 
+            opacity: { duration: 0.8, delay: 0.4 },
+            x: { duration: 0.8, delay: 0.4 },
+            y: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+          }}
+          className="hidden lg:flex absolute left-4 xl:left-12 top-[62%] -translate-y-1/2 flex-col gap-6 z-20 pointer-events-none"
+        >
+          <div className="flex items-center gap-3 bg-white/95 backdrop-blur-md border border-[#E5E1DA] px-4 py-2.5 rounded-2xl shadow-lg transform -rotate-3 hover:rotate-0 transition-transform pointer-events-auto">
+            <div className="w-8 h-8 rounded-xl bg-black flex items-center justify-center text-white shadow-sm">
+              <Music2 className="w-4 h-4 text-[#00f2fe]" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold text-[#1A1A1A]">TikTok</div>
+              <div className="text-[10px] font-semibold text-[#8C8275]">Format 9:16</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white/95 backdrop-blur-md border border-[#E5E1DA] px-4 py-2.5 rounded-2xl shadow-lg transform rotate-2 hover:rotate-0 transition-transform pointer-events-auto">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-sm">
+              <Instagram className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold text-[#1A1A1A]">Instagram</div>
+              <div className="text-[10px] font-semibold text-[#8C8275]">Reels HD</div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Floating Social Icons (Right Side - Positioned lower next to subtitle & buttons) */}
+        <motion.div 
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0, y: [0, 10, 0] }}
+          transition={{ 
+            opacity: { duration: 0.8, delay: 0.4 },
+            x: { duration: 0.8, delay: 0.4 },
+            y: { duration: 4.5, repeat: Infinity, ease: "easeInOut" }
+          }}
+          className="hidden lg:flex absolute right-4 xl:right-12 top-[62%] -translate-y-1/2 flex-col gap-6 z-20 pointer-events-none"
+        >
+          <div className="flex items-center gap-3 bg-white/95 backdrop-blur-md border border-[#E5E1DA] px-4 py-2.5 rounded-2xl shadow-lg transform rotate-3 hover:rotate-0 transition-transform pointer-events-auto">
+            <div className="w-8 h-8 rounded-xl bg-[#FF0000] flex items-center justify-center text-white shadow-sm">
+              <Youtube className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold text-[#1A1A1A]">Shorts</div>
+              <div className="text-[10px] font-semibold text-[#8C8275]">YouTube</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white/95 backdrop-blur-md border border-[#E5E1DA] px-4 py-2.5 rounded-2xl shadow-lg transform -rotate-2 hover:rotate-0 transition-transform pointer-events-auto">
+            <div className="w-8 h-8 rounded-xl bg-[#1877F2] flex items-center justify-center text-white shadow-sm">
+              <Facebook className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold text-[#1A1A1A]">Facebook</div>
+              <div className="text-[10px] font-semibold text-[#8C8275]">Stories</div>
+            </div>
+          </div>
+        </motion.div>
         
         {/* Creator Trust Badge */}
         <motion.div 
@@ -124,7 +268,7 @@ export function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.4 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-30"
         >
           <motion.button 
             whileHover={{ scale: 1.04 }}
@@ -301,7 +445,7 @@ export function LandingPage() {
       </section>
 
       {/* 3-Step Creation Pipeline Showcase */}
-      <section className="w-full max-w-7xl mx-auto px-6 py-20 border-t border-[#E5E1DA]">
+      <section id="features-showcase" className="w-full max-w-7xl mx-auto px-6 py-20 border-t border-[#E5E1DA]">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -354,7 +498,7 @@ export function LandingPage() {
       </section>
 
       {/* Security, Privacy & Open Source Banner */}
-      <section className="w-full max-w-7xl mx-auto px-6 py-12">
+      <section id="privacy-section" className="w-full max-w-7xl mx-auto px-6 py-12">
         <motion.div 
           initial={{ opacity: 0, scale: 0.97 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -401,7 +545,7 @@ export function LandingPage() {
       </section>
 
       {/* Testimonials Infinite Marquee */}
-      <section className="w-full py-20 overflow-hidden bg-[#FAF9F7]">
+      <section id="testimonials-section" className="w-full py-20 overflow-hidden bg-[#FAF9F7]">
         <div className="w-full max-w-7xl mx-auto px-6 mb-12">
           <h2 className="text-3xl font-bold text-[#1A1A1A] tracking-tight">{t('testimonials.title')}</h2>
           <p className="text-[#70685C] mt-2 font-medium">{t('testimonials.subtitle')}</p>
