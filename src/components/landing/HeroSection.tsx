@@ -90,29 +90,31 @@ export function HeroSection() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        className="inline-flex items-center gap-3 px-4 py-2 bg-white border border-[#E5E1DA] rounded-full shadow-sm mb-8"
+        className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 px-4 py-3 sm:py-2 bg-white border border-[#E5E1DA] rounded-[1.5rem] sm:rounded-full shadow-sm mb-8"
       >
-        <div className="flex -space-x-2">
-          {[ 
-            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=faces",
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=faces",
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=faces"
-          ].map((src, i) => (
-            <img 
-              key={i}
-              src={src} 
-              alt="user avatar" 
-              className="w-7 h-7 rounded-full border-2 border-white object-cover"
-              referrerPolicy="no-referrer"
-            />
-          ))}
+        <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-3">
+          <div className="flex -space-x-2">
+            {[ 
+              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=faces",
+              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=faces",
+              "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=faces"
+            ].map((src, i) => (
+              <img 
+                key={i}
+                src={src} 
+                alt="user avatar" 
+                className="w-7 h-7 rounded-full border-2 border-white object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-1 text-amber-500">
+            {[...Array(5)].map((_, i) => (
+              <HugeiconsIcon key={i} icon={StarIcon} size={14} color="currentColor" strokeWidth={2.25} className="fill-current" />
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-1 text-amber-500">
-          {[...Array(5)].map((_, i) => (
-            <HugeiconsIcon key={i} icon={StarIcon} size={14} color="currentColor" strokeWidth={2.25} className="fill-current" />
-          ))}
-        </div>
-        <p className="text-xs font-semibold text-[#575047] pr-1">
+        <p className="text-xs font-semibold text-[#575047] sm:pr-1 text-center">
           <Trans i18nKey="hero.creatorsInfo" count={2400}>
             Plus de <span className="font-bold text-[#1A1A1A]">2 400 créateurs</span> utilisent Heartlines
           </Trans>
