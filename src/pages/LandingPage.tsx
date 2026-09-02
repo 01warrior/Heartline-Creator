@@ -3,8 +3,10 @@ import { LandingHeader } from '../components/landing/LandingHeader';
 import { HeroSection } from '../components/landing/HeroSection';
 import { DemoShowcaseSection } from '../components/landing/DemoShowcaseSection';
 import { FeaturesSection } from '../components/landing/FeaturesSection';
+import { StyleGallerySection } from '../components/landing/StyleGallerySection';
 import { SecuritySection } from '../components/landing/SecuritySection';
 import { TestimonialsSection } from '../components/landing/TestimonialsSection';
+import { FaqSection } from '../components/landing/FaqSection';
 import { CtaFinalSection } from '../components/landing/CtaFinalSection';
 import { LandingFooter } from '../components/landing/LandingFooter';
 
@@ -15,8 +17,10 @@ export function LandingPage() {
       <HeroSection />
       <DemoShowcaseSection />
       <FeaturesSection />
+      <StyleGallerySection />
       <SecuritySection />
       <TestimonialsSection />
+      <FaqSection />
       <CtaFinalSection />
       <LandingFooter />
     </div>

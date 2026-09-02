@@ -41,6 +41,23 @@ const resources = {
           { name: '@TechReview', platform: 'TikTok', text: 'The voice synthesis is the most natural I\'ve tested.' }
         ]
       },
+      faq: {
+        title: 'Frequently Asked Questions',
+        subtitle: 'Everything you need to know to get started.',
+        q1: 'Is it really free?',
+        a1: 'Yes. Unlike other tools that charge a monthly subscription, Heartlines uses your own Google Gemini key. Google offers a very generous Free Tier which is more than enough to create dozens of videos each month.',
+        q2: 'Where can I find my Gemini Key?',
+        a2: 'Simply go to "Google AI Studio", sign in with a Google account, and click on "Get API Key". It takes less than 2 minutes and is completely free.',
+        q3: 'Are my videos and texts private?',
+        a3: 'Absolutely. Everything happens directly between your browser and Google. We do NOT store any of your data, texts, videos, or API key. Storage is 100% local on your machine.',
+        q4: 'Do I need video editing skills?',
+        a4: 'None! The studio is designed to be completely hassle-free. You enter a theme, the AI writes the story, generates images, and the voice. You just click to export the final video.'
+      },
+      gallery: {
+        title: 'Style Gallery',
+        subtitle: 'An art direction for every emotion.',
+        promptLabel: 'Style Prompt',
+      },
       cta: {
         title: 'Ready to tell your story?',
         subtitle: 'Join the creators who are already redefining short emotional videos.',
@@ -160,6 +177,23 @@ const resources = {
           { name: '@VideoMaster', platform: 'YouTube', text: 'L\'export 4K est d\'une propreté incroyable.' },
           { name: '@TechReview', platform: 'TikTok', text: 'La voix de synthèse est la plus naturelle que j\'ai testée.' }
         ]
+      },
+      faq: {
+        title: 'Questions fréquentes',
+        subtitle: 'Tout ce que vous devez savoir pour commencer.',
+        q1: 'Est-ce vraiment gratuit ?',
+        a1: 'Oui. Contrairement aux autres outils qui vous font payer un abonnement, Heartlines utilise votre propre clé Google Gemini. Google offre une version gratuite très généreuse (Free Tier) qui est amplement suffisante pour créer des dizaines de vidéos chaque mois.',
+        q2: 'Où trouver ma clé Gemini ?',
+        a2: 'Il suffit de se rendre sur "Google AI Studio", de se connecter avec un compte Google, et de cliquer sur "Get API Key". Cela prend moins de 2 minutes et c\'est totalement gratuit.',
+        q3: 'Mes vidéos et textes sont-ils privés ?',
+        a3: 'Absolument. Tout se passe directement entre votre navigateur et Google. Nous ne stockons AUCUNE de vos données, ni vos textes, ni vos vidéos, ni votre clé API. Le stockage est 100% local sur votre machine.',
+        q4: 'Ai-je besoin de compétences en montage ?',
+        a4: 'Aucune ! Le studio est conçu pour être "Zéro prise de tête". Vous entrez un thème, l\'IA écrit l\'histoire, génère les images et la voix. Vous n\'avez plus qu\'à exporter la vidéo finale.'
+      },
+      gallery: {
+        title: 'Galerie de Styles',
+        subtitle: 'Une direction artistique pour chaque émotion.',
+        promptLabel: 'Prompt Style',
       },
       cta: {
         title: 'Prêt à raconter votre histoire ?',
