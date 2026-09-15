@@ -40,7 +40,7 @@ const SETTINGS_STORAGE_KEYS = {
 };
 
 const DEFAULT_SETTINGS = {
-  scriptModel: 'gemini-3-flash-preview',
+  scriptModel: 'gemini-3.5-flash-lite',
   imageModel: 'gemini-2.5-flash-image',
   ttsModel: 'gemini-3.1-flash-tts-preview',
   selectedVoice: 'Kore',

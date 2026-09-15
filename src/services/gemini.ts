@@ -276,11 +276,10 @@ export async function generateStoryboard(
   modelName: string,
   story: string,
   style: string,
-  totalDuration: number,
+  sceneCount: number,
   sceneDuration: number
 ): Promise<any> {
   const ai = getAI(apiKey);
-  const sceneCount = Math.ceil(totalDuration / sceneDuration);
 
   const prompt = `You are a master AI Cinema Director and Prompt Engineer for modern models (Midjourney v6/v7, Seedance 2.5, Kling 2.0). 
   Generate a complete production storyboard for a vertical video (9:16 aspect ratio).
@@ -297,22 +296,27 @@ export async function generateStoryboard(
   2. UNIFIED ALL-IN-ONE VIDEO PROMPT (FOR SEEDANCE / MODERN VIDEO GENERATORS): 
      Do NOT output separate video prompt, narration, and audio prompts. The 'videoPrompt' MUST be ONE comprehensive prompt that includes everything needed for a ${sceneDuration}-second cinematic video with native audio:
      - Starts with the EXACT character 'visualBlock'
-     - Chronological sequence of actions filling the ${sceneDuration}s (e.g., starts by..., then..., while...)
-     - Fluid camera trajectory (continuous dolly, pan, or push in)
+     - Chronological sequence of actions filling the ${sceneDuration}s. Use transition words like "starts by...", "then...", "ends with...". Include micro-expressions and body language.
+     - Use professional set vocabulary (e.g., rack focus, dolly-in, chiaroscuro, three-point lighting). Avoid generic words like "cinematic".
      - Environmental secondary motion (fog swirling, rain falling, clothes moving)
      - Native Spoken Dialogue directly enclosed in double quotes. IMPORTANT: The spoken dialogue MUST be in FRENCH (e.g., the character speaks with a trembling voice, saying: "Ligne de dialogue exacte en français ici")
      - Native Ambient Audio & Sound Effects (e.g., [Audio: heavy rain falling on stone, low rumbling thunder, distant crow caw])
+     - END the video prompt with negative specifications (e.g., "--no text, subtitles, watermark, distorted hands, morphing").
 
-  3. CHARACTER CONSISTENCY: Define the character's 'visualBlock' once (approx 25 words with distinctive clothing and facial features). This EXACT string MUST be pasted word-for-word at the very beginning of both the imagePrompt and videoPrompt of every scene where they appear.
-  
+  3. SUBJECT/CHARACTER CONSISTENCY: Define the subject's 'visualBlock' once (approx 25 words). 
+     - For humans, include distinctive clothing/facial features. 
+     - For anthropomorphic trends (talking fruits, vegetables, animals), explicitly describe them as humanoid entities (e.g., 'An anthropomorphic broccoli character wearing a tiny denim jacket, with big expressive cartoon eyes and a wide smile'). 
+     - For literal food/animals, describe texture, colors, species, or plating.
+     This EXACT string MUST be pasted word-for-word at the very beginning of both the imagePrompt and videoPrompt of every scene where they appear.
+
   Your output MUST be a strict JSON object following this exact structure:
   {
     "characters": [
       {
-        "name": "Character Name",
-        "description": "French summary of role",
-        "visualBlock": "English EXACT character appearance block (~25 words, e.g., 'A 45-year-old weary African man with short grey-streaked beard, wearing a patched dark wool coat, carrying a battered brass lantern')",
-        "imagePrompt": "English single prompt ready for Midjourney with --ar 9:16 --no ..."
+        "name": "Subject/Character Name",
+        "description": "French summary of role or description of the object",
+        "visualBlock": "English EXACT appearance block (~25 words, e.g., 'An anthropomorphic grumpy potato wearing a tiny leather jacket, with big cartoon eyes...' or 'A 45-year-old weary man...')",
+        "imagePrompt": "English single prompt ready for Midjourney. IMPORTANT: For the casting shot, place the subject on a neutral, plain studio background to isolate their design, e.g., 'Character design sheet, neutral white background, studio lighting' or 'Product shot on clean neutral background' ending with --ar 9:16 --no ..."
       }
     ],
     "scenes": [

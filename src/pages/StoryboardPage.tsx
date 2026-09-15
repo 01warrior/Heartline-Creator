@@ -37,8 +37,8 @@ export function StoryboardPage() {
   
   const [story, setStory] = useState('');
   const [style, setStyle] = useState('Cinematic Noir');
-  const [totalDuration, setTotalDuration] = useState<number>(60);
-  const [sceneDuration, setSceneDuration] = useState<number>(10);
+  const [sceneCount, setSceneCount] = useState<number>(8);
+  const [sceneDuration, setSceneDuration] = useState<number>(5);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -61,16 +61,12 @@ export function StoryboardPage() {
       setError("Veuillez entrer une histoire ou un script.");
       return;
     }
-    if (totalDuration < sceneDuration) {
-      setError("La durée totale doit être supérieure ou égale à la durée d'une scène.");
-      return;
-    }
 
     setIsGenerating(true);
     setError('');
     
     try {
-      const data = await generateStoryboard(apiKey, scriptModel, story, style, totalDuration, sceneDuration);
+      const data = await generateStoryboard(apiKey, scriptModel, story, style, sceneCount, sceneDuration);
       setStoryboard(data);
     } catch (err: any) {
       setError(err.message || "Erreur lors de la génération du storyboard.");
@@ -119,6 +115,10 @@ export function StoryboardPage() {
               { value: "Cinematic Noir", label: "Cinematic Noir", description: "Film sombre" },
               { value: "Pixar 3D", label: "Pixar 3D", description: "Animation moderne" },
               { value: "Hyper Realistic", label: "Hyper Réaliste", description: "Photographie" },
+              { value: "TikTok Fruit/Veggie", label: "Personnage Fruit/Légume", description: "Trend TikTok, Anthropomorphe" },
+              { value: "Anthropomorphic Animal", label: "Animal Anthropomorphe", description: "Animaux humanisés (ex: Zootopie)" },
+              { value: "Food Commercial", label: "Food Commercial", description: "Macro, slow-motion, appétissant" },
+              { value: "Nature Documentary", label: "Documentaire Nature", description: "Animaux, macro, National Geographic" },
               { value: "Vintage Anime", label: "Vintage Anime", description: "Style 90s" },
               { value: "Cyberpunk", label: "Cyberpunk", description: "Néon, futuriste" }
             ]}
@@ -126,18 +126,18 @@ export function StoryboardPage() {
 
           <div className="flex gap-4">
             <div className="flex flex-col gap-2 flex-1">
-              <label className="text-sm font-bold text-[#1A1A1A]">Durée totale (s)</label>
+              <label className="text-sm font-bold text-[#1A1A1A]">Nombre de scènes</label>
               <input
                 type="number"
-                value={totalDuration}
-                onChange={(e) => setTotalDuration(Number(e.target.value))}
-                min={10}
-                max={300}
+                value={sceneCount}
+                onChange={(e) => setSceneCount(Number(e.target.value))}
+                min={8}
+                max={15}
                 className="w-full p-3 rounded-xl border border-[#E5E1DA] bg-[#FAF9F7] text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
             <div className="flex flex-col gap-2 flex-1">
-              <label className="text-sm font-bold text-[#1A1A1A]">Par scène (s)</label>
+              <label className="text-sm font-bold text-[#1A1A1A]">Durée par scène (s)</label>
               <input
                 type="number"
                 value={sceneDuration}
