@@ -300,7 +300,7 @@ export async function generateStoryboard(
      - Chronological sequence of actions filling the ${sceneDuration}s (e.g., starts by..., then..., while...)
      - Fluid camera trajectory (continuous dolly, pan, or push in)
      - Environmental secondary motion (fog swirling, rain falling, clothes moving)
-     - Native Spoken Dialogue directly enclosed in double quotes (e.g., the character speaks with a trembling voice, saying: "Exact dialogue line here")
+     - Native Spoken Dialogue directly enclosed in double quotes. IMPORTANT: The spoken dialogue MUST be in FRENCH (e.g., the character speaks with a trembling voice, saying: "Ligne de dialogue exacte en français ici")
      - Native Ambient Audio & Sound Effects (e.g., [Audio: heavy rain falling on stone, low rumbling thunder, distant crow caw])
 
   3. CHARACTER CONSISTENCY: Define the character's 'visualBlock' once (approx 25 words with distinctive clothing and facial features). This EXACT string MUST be pasted word-for-word at the very beginning of both the imagePrompt and videoPrompt of every scene where they appear.
@@ -320,7 +320,7 @@ export async function generateStoryboard(
         "sceneNumber": 1,
         "frenchSummary": "Description en français de ce qui se passe dans la scène",
         "imagePrompt": "All-in-one English prompt for Midjourney including '--ar 9:16 --no ...'",
-        "videoPrompt": "All-in-one English prompt for Seedance/Kling including the 10s action progression, the spoken dialogue in quotes, and the ambient audio cues."
+        "videoPrompt": "All-in-one English prompt for Seedance/Kling including the 10s action progression, the spoken dialogue in FRENCH in quotes, and the ambient audio cues."
       }
     ]
   }`;
