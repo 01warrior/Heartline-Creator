@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AVAILABLE_VOICES, VIDEO_MODELS } from '../../services/gemini';
 import { useStudioSettings } from '../../context/StudioSettingsContext';
 
-function CustomSelect({
+export function CustomSelect({
   label,
   value,
   options,
@@ -105,6 +105,9 @@ export function StudioSettingsPanel({
   } = useStudioSettings();
 
   const scriptModelOptions = [
+    { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', description: t('studio.labels.flash38Desc') },
+    { value: 'gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite', description: t('studio.labels.flashLite35Desc') },
+    { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash', description: t('studio.labels.flash35Desc') },
     { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', description: t('studio.labels.flashLiteDesc') },
     { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', description: t('studio.labels.flashDesc') },
     { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', description: t('studio.labels.proDesc') },
@@ -347,18 +350,19 @@ export function StudioSettingsPanel({
           )}
 
           <div>
-            <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196] mb-2">
-              {t('studio.styleLabel')}
-            </label>
-            <div className="relative bg-white border border-[#E5E1DA] rounded-xl overflow-hidden focus-within:border-[#C5A880] transition-colors shadow-sm">
-              <input
-                type="text"
-                value={imageStyle}
-                onChange={e => setImageStyle(e.target.value)}
-                placeholder={t('studio.stylePlaceholder')}
-                className="w-full bg-transparent p-4 text-[#1A1A1A] text-sm placeholder-[#A8A196] focus:outline-none"
-              />
-            </div>
+            <CustomSelect
+              label={t('studio.styleLabel')}
+              value={imageStyle}
+              onChange={setImageStyle}
+              options={[
+                { value: 'Pixar 3D', label: 'Pixar 3D', description: 'Style d\'animation 3D doux et expressif.' },
+                { value: 'Cinématique Noir', label: 'Cinématique Noir', description: 'Fort contraste, ombres dramatiques, réaliste.' },
+                { value: 'Aquarelle Douce', label: 'Aquarelle Douce', description: 'Peinture légère, romantique et apaisante.' },
+                { value: 'Photoréalisme', label: 'Photoréalisme', description: 'Photos très détaillées, style documentaire.' },
+                { value: 'Anime Japonais', label: 'Anime Japonais', description: 'Style animation japonaise classique (2D).' },
+                { value: 'Cyberpunk', label: 'Cyberpunk', description: 'Néons, futuriste, couleurs vibrantes.' }
+              ]}
+            />
             <p className="mt-3 text-[10px] text-[#A8A196] leading-relaxed italic">
               {t('studio.styleTip')}
             </p>

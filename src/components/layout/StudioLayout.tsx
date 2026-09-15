@@ -5,6 +5,7 @@ import {
   Menu01Icon,
   Home01Icon,
   VideoIcon,
+  Film02Icon,
   FolderIcon,
   CogIcon
 } from '@hugeicons/core-free-icons';
@@ -16,6 +17,7 @@ export function StudioLayout() {
 
   const NAV_ITEMS = [
     { path: '/studio', label: 'Créer', icon: Home01Icon },
+    { path: '/studio/storyboard', label: 'Storyboard', icon: Film02Icon },
     { path: '/studio/videos', label: 'Mes Vidéos', icon: VideoIcon },
     { path: '/studio/assets', label: 'Mes Assets', icon: FolderIcon },
     { path: '/studio/settings', label: 'Parametres', icon: CogIcon },

@@ -6,6 +6,7 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Search, Filter, Video, FolderOpen, Plus, Sparkles, ArrowRight } from 'lucide-react';
 import { StudioCreatePage } from './pages/StudioCreatePage';
+import { StoryboardPage } from './pages/StoryboardPage';
 import { LandingPage } from './pages/LandingPage';
 import { StudioLayout } from './components/layout/StudioLayout';
 import { StudioSettingsProvider } from './context/StudioSettingsContext';
@@ -134,6 +135,7 @@ export default function App() {
           }
         >
           <Route index element={<StudioCreatePage />} />
+          <Route path="storyboard" element={<StoryboardPage />} />
           <Route path="settings" element={<StudioSettingsPage />} />
           <Route path="videos" element={
             <StudioEmptyState

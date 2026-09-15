@@ -271,7 +271,77 @@ export async function playPcmAudio(base64Data: string, onProgress?: (percent: nu
   });
 }
 
-// ─── Veo Video Generation (Image-to-Video) ─────────────────────────────
+export async function generateStoryboard(
+  apiKey: string,
+  modelName: string,
+  story: string,
+  style: string,
+  totalDuration: number,
+  sceneDuration: number
+): Promise<any> {
+  const ai = getAI(apiKey);
+  const sceneCount = Math.ceil(totalDuration / sceneDuration);
+
+  const prompt = `You are a master AI Cinema Director and Prompt Engineer for modern models (Midjourney v6/v7, Seedance 2.5, Kling 2.0). 
+  Generate a complete production storyboard for a vertical video (9:16 aspect ratio).
+  
+  STORY CONTEXT: "${story}"
+  TARGET VISUAL STYLE: "${style}"
+  REQUIRED SCENES: Exactly ${sceneCount} scenes.
+  TARGET SCENE DURATION: ${sceneDuration} seconds per scene.
+
+  CRITICAL RULES:
+  1. UNIFIED PROMPT MIDJOURNEY: Do NOT output separate positive and negative fields. Output ONE single copy-paste ready Midjourney prompt string ending with '--ar 9:16 --no [negative keywords]'.
+     Format: [Character visualBlock], [Action], [Setting], [Look], [Camera/Lighting] --ar 9:16 --no blurry deformed text watermark mutilated
+
+  2. UNIFIED ALL-IN-ONE VIDEO PROMPT (FOR SEEDANCE / MODERN VIDEO GENERATORS): 
+     Do NOT output separate video prompt, narration, and audio prompts. The 'videoPrompt' MUST be ONE comprehensive prompt that includes everything needed for a ${sceneDuration}-second cinematic video with native audio:
+     - Starts with the EXACT character 'visualBlock'
+     - Chronological sequence of actions filling the ${sceneDuration}s (e.g., starts by..., then..., while...)
+     - Fluid camera trajectory (continuous dolly, pan, or push in)
+     - Environmental secondary motion (fog swirling, rain falling, clothes moving)
+     - Native Spoken Dialogue directly enclosed in double quotes (e.g., the character speaks with a trembling voice, saying: "Exact dialogue line here")
+     - Native Ambient Audio & Sound Effects (e.g., [Audio: heavy rain falling on stone, low rumbling thunder, distant crow caw])
+
+  3. CHARACTER CONSISTENCY: Define the character's 'visualBlock' once (approx 25 words with distinctive clothing and facial features). This EXACT string MUST be pasted word-for-word at the very beginning of both the imagePrompt and videoPrompt of every scene where they appear.
+  
+  Your output MUST be a strict JSON object following this exact structure:
+  {
+    "characters": [
+      {
+        "name": "Character Name",
+        "description": "French summary of role",
+        "visualBlock": "English EXACT character appearance block (~25 words, e.g., 'A 45-year-old weary African man with short grey-streaked beard, wearing a patched dark wool coat, carrying a battered brass lantern')",
+        "imagePrompt": "English single prompt ready for Midjourney with --ar 9:16 --no ..."
+      }
+    ],
+    "scenes": [
+      {
+        "sceneNumber": 1,
+        "frenchSummary": "Description en français de ce qui se passe dans la scène",
+        "imagePrompt": "All-in-one English prompt for Midjourney including '--ar 9:16 --no ...'",
+        "videoPrompt": "All-in-one English prompt for Seedance/Kling including the 10s action progression, the spoken dialogue in quotes, and the ambient audio cues."
+      }
+    ]
+  }`;
+
+  const response = await ai.models.generateContent({
+    model: modelName || 'gemini-3.1-pro-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json'
+    }
+  });
+
+  try {
+    const rawText = response.text || "{}";
+    return JSON.parse(rawText);
+  } catch (e) {
+    console.error("Failed to parse storyboard", e);
+    throw new Error("Failed to parse the generated storyboard.");
+  }
+}
+
 
 /**
  * Convert a base64 data URL to a Blob
