@@ -309,6 +309,8 @@ export async function generateStoryboard(
      - For literal food/animals, describe texture, colors, species, or plating.
      This EXACT string MUST be pasted word-for-word at the very beginning of both the imagePrompt and videoPrompt of every scene where they appear.
 
+  4. CINEMATIC FLOW & CONTINUITY: Ensure seamless transitions between scenes. Do not abruptly spawn subjects in static poses. Account for how the previous scene ended. Use dynamic entrances, exits, and camera reveals (e.g., 'Camera follows character walking into the dimly lit room...', 'Starts on a tight close-up of the door opening, panning right to reveal the ghost...', 'Subject walks into the frame from the left...'). Create a realistic, flowing narrative pace.
+
   Your output MUST be a strict JSON object following this exact structure:
   {
     "characters": [
