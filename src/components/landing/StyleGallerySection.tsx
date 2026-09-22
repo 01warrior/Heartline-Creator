@@ -52,7 +52,7 @@ export const StyleGallerySection: React.FC = () => {
                 {/* Background Image */}
                 <img
                   src={placeholderImages[index]}
-                  alt={preset.name}
+                  alt={preset.label}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                 />
                 
@@ -69,7 +69,7 @@ export const StyleGallerySection: React.FC = () => {
                     {!isActive && (
                       <div className="hidden lg:block absolute bottom-12 left-1/2 -translate-x-1/2 -rotate-90 origin-bottom-left whitespace-nowrap">
                         <span className="text-white font-medium tracking-wider uppercase text-sm">
-                          {preset.name}
+                          {preset.label}
                         </span>
                       </div>
                     )}
@@ -78,7 +78,7 @@ export const StyleGallerySection: React.FC = () => {
                     {!isActive && (
                       <div className="lg:hidden absolute bottom-6 left-6 whitespace-nowrap">
                         <span className="text-white font-medium tracking-wider uppercase text-sm">
-                          {preset.name}
+                          {preset.label}
                         </span>
                       </div>
                     )}
@@ -94,7 +94,7 @@ export const StyleGallerySection: React.FC = () => {
                           className="relative z-10"
                         >
                           <h3 className="text-2xl md:text-3xl font-serif text-white font-bold mb-3">
-                            {preset.name}
+                            {preset.label}
                           </h3>
                           <div className="bg-black/30 backdrop-blur-md border border-white/20 rounded-xl p-4 inline-block max-w-lg">
                             <span className="text-white/60 text-xs font-semibold uppercase tracking-wider mb-1 block">
