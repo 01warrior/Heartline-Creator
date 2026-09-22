@@ -296,9 +296,16 @@ export async function generateStoryboard(
   style: string,
   sceneCount: number,
   sceneDuration: number,
-  continuation?: StoryboardContinuationContext
+  continuation?: StoryboardContinuationContext,
+  dialogueLanguage: 'fr' | 'en' = 'fr'
 ): Promise<any> {
   const ai = getAI(apiKey);
+
+  const langLabel = dialogueLanguage === 'en' ? 'ENGLISH' : 'FRENCH';
+  const langDialogueExample = dialogueLanguage === 'en' 
+    ? 'the character speaks with a trembling voice, saying: "Exact spoken dialogue line in English here"'
+    : 'the character speaks with a trembling voice, saying: "Ligne de dialogue exacte en français ici"';
+  const langDescNote = dialogueLanguage === 'en' ? 'English description' : 'Description en français';
 
   let continuationInstructions = '';
   if (continuation && continuation.episodeNumber > 1) {
@@ -348,6 +355,7 @@ ${scenesSummary || 'Not provided.'}
   TARGET VISUAL STYLE: "${style}"
   REQUIRED SCENES: Exactly ${sceneCount} scenes.
   TARGET SCENE DURATION: ${sceneDuration} seconds per scene.
+  DIALOGUE & SUMMARY LANGUAGE: ${langLabel}.
 
   CRITICAL RULES:
   1. UNIFIED PROMPT MIDJOURNEY: Do NOT output separate positive and negative fields. Output ONE single copy-paste ready Midjourney prompt string ending with '--ar 9:16 --no [negative keywords]'.
@@ -359,7 +367,7 @@ ${scenesSummary || 'Not provided.'}
      - Chronological sequence of actions filling the ${sceneDuration}s. Use transition words like "starts by...", "then...", "ends with...". Include micro-expressions and body language.
      - Use professional set vocabulary (e.g., rack focus, dolly-in, chiaroscuro, three-point lighting). Avoid generic words like "cinematic".
      - Environmental secondary motion (fog swirling, rain falling, clothes moving)
-     - Native Spoken Dialogue directly enclosed in double quotes. IMPORTANT: The spoken dialogue MUST be in FRENCH (e.g., the character speaks with a trembling voice, saying: "Ligne de dialogue exacte en français ici")
+     - Native Spoken Dialogue directly enclosed in double quotes. IMPORTANT: The spoken dialogue MUST be in ${langLabel} (e.g., ${langDialogueExample})
      - Native Ambient Audio & Sound Effects (e.g., [Audio: heavy rain falling on stone, low rumbling thunder, distant crow caw])
      - END the video prompt with negative specifications (e.g., "--no text, subtitles, watermark, distorted hands, morphing").
 
@@ -376,7 +384,7 @@ ${scenesSummary || 'Not provided.'}
     "characters": [
       {
         "name": "Subject/Character Name",
-        "description": "French summary of role or description of the object",
+        "description": "${langDescNote} of role or description of the object",
         "visualBlock": "English EXACT appearance block (~25 words, e.g., 'An anthropomorphic grumpy potato wearing a tiny leather jacket, with big cartoon eyes...' or 'A 45-year-old weary man...')",
         "imagePrompt": "English single prompt ready for Midjourney. IMPORTANT: For the casting shot, place the subject on a neutral, plain studio background to isolate their design, e.g., 'Character design sheet, neutral white background, studio lighting' or 'Product shot on clean neutral background' ending with --ar 9:16 --no ..."
       }
@@ -384,9 +392,9 @@ ${scenesSummary || 'Not provided.'}
     "scenes": [
       {
         "sceneNumber": 1,
-        "frenchSummary": "Description en français de ce qui se passe dans la scène",
+        "frenchSummary": "${langDescNote} de ce qui se passe dans la scène",
         "imagePrompt": "All-in-one English prompt for Midjourney including '--ar 9:16 --no ...'",
-        "videoPrompt": "All-in-one English prompt for Seedance/Kling including the 10s action progression, the spoken dialogue in FRENCH in quotes, and the ambient audio cues."
+        "videoPrompt": "All-in-one English prompt for Seedance/Kling including the ${sceneDuration}s action progression, the spoken dialogue in ${langLabel} in quotes, and the ambient audio cues."
       }
     ]
   }`;

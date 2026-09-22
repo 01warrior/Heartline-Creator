@@ -38,6 +38,7 @@ interface SavedStoryboard {
   createdAt: number;
   story: string;
   style: string;
+  dialogueLanguage?: 'fr' | 'en';
   sceneCount: number;
   sceneDuration: number;
   data: StoryboardData;
@@ -59,6 +60,7 @@ export function StoryboardPage() {
   
   const [story, setStory] = useState('');
   const [style, setStyle] = useState('Cinematic Noir');
+  const [dialogueLanguage, setDialogueLanguage] = useState<'fr' | 'en'>('fr');
   const [sceneCount, setSceneCount] = useState<number>(8);
   const [sceneDuration, setSceneDuration] = useState<number>(5);
   
@@ -120,6 +122,7 @@ export function StoryboardPage() {
       episodeNumber: nextEp
     });
     if (parentItem.style) setStyle(parentItem.style);
+    if (parentItem.dialogueLanguage) setDialogueLanguage(parentItem.dialogueLanguage);
     setStory('');
     setIsHistoryOpen(false);
     setError('');
@@ -156,7 +159,16 @@ export function StoryboardPage() {
         };
       }
 
-      const rawData = await generateStoryboard(apiKey, scriptModel, story, style, sceneCount, sceneDuration, continuationContext);
+      const rawData = await generateStoryboard(
+        apiKey,
+        scriptModel,
+        story,
+        style,
+        sceneCount,
+        sceneDuration,
+        continuationContext,
+        dialogueLanguage
+      );
       
       const safeData: StoryboardData = {
         characters: Array.isArray(rawData?.characters) ? rawData.characters : [],
@@ -175,6 +187,7 @@ export function StoryboardPage() {
         createdAt: Date.now(),
         story: story.trim(),
         style,
+        dialogueLanguage,
         sceneCount,
         sceneDuration,
         data: safeData,
@@ -199,6 +212,7 @@ export function StoryboardPage() {
     if (!item) return;
     setStory(item.story || '');
     setStyle(item.style || 'Cinematic Noir');
+    if (item.dialogueLanguage) setDialogueLanguage(item.dialogueLanguage);
     setSceneCount(item.sceneCount || 8);
     setSceneDuration(item.sceneDuration || 5);
     const safeData: StoryboardData = {
@@ -290,7 +304,7 @@ export function StoryboardPage() {
             {/* Cliffhanger reminder card */}
             <div className="bg-white/90 p-3.5 rounded-xl border border-amber-200/70 text-xs flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[11px] font-bold text-amber-950">
-                <span>🎬 Point d'accroche (Fin de l'Épisode {continuation.episodeNumber - 1}) :</span>
+                <span>Point d'accroche (Fin de l'Épisode {continuation.episodeNumber - 1}) :</span>
                 <span className="font-mono text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
                   {continuation.parentItem?.data?.scenes && continuation.parentItem.data.scenes.length > 0
                     ? `Scène ${continuation.parentItem.data.scenes.length}`
@@ -311,7 +325,7 @@ export function StoryboardPage() {
                 <div className="flex flex-wrap gap-1.5">
                   {continuation.parentItem.data.characters.map((char, i) => (
                     <span key={i} className="bg-white px-2.5 py-0.5 rounded-md border border-[#E5E1DA] font-semibold text-[#1A1A1A] text-[11px]">
-                      👤 {char.name}
+                      {char.name}
                     </span>
                   ))}
                 </div>
@@ -347,7 +361,7 @@ export function StoryboardPage() {
 
           {/* Right: Settings */}
           <div className="w-full lg:w-80 flex flex-col justify-between gap-5">
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4">
               <CustomSelect
                 label="Style Visuel"
                 value={style}
@@ -362,6 +376,16 @@ export function StoryboardPage() {
                   { value: "Nature Documentary", label: "Documentaire Nature", description: "Animaux, macro, National Geographic" },
                   { value: "Vintage Anime", label: "Vintage Anime", description: "Style 90s" },
                   { value: "Cyberpunk", label: "Cyberpunk", description: "Néon, futuriste" }
+                ]}
+              />
+
+              <CustomSelect
+                label="Langue des dialogues"
+                value={dialogueLanguage}
+                onChange={(val) => setDialogueLanguage(val as 'fr' | 'en')}
+                options={[
+                  { value: "fr", label: "Français", description: "Dialogues & résumés en français" },
+                  { value: "en", label: "Anglais", description: "Dialogues & summaries in English" }
                 ]}
               />
 
@@ -394,7 +418,7 @@ export function StoryboardPage() {
             <button
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="w-full mt-4 py-3.5 bg-[#1A1A1A] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+              className="w-full mt-2 py-3.5 bg-[#1A1A1A] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
             >
               {isGenerating ? (
                 <span className="flex items-center gap-2">
@@ -405,7 +429,7 @@ export function StoryboardPage() {
                 <>
                   <HugeiconsIcon icon={SparklesIcon} size={20} className="text-amber-400" />
                   {continuation && continuation.active
-                    ? `🎬 Générer l'Épisode ${continuation.episodeNumber}`
+                    ? `Générer l'Épisode ${continuation.episodeNumber}`
                     : "Générer le Storyboard"}
                 </>
               )}
@@ -458,6 +482,7 @@ export function StoryboardPage() {
                 createdAt: Date.now(),
                 story,
                 style,
+                dialogueLanguage,
                 sceneCount,
                 sceneDuration,
                 data: storyboard,
@@ -466,7 +491,7 @@ export function StoryboardPage() {
               className="px-5 py-3 bg-[#1A1A1A] hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md cursor-pointer shrink-0"
             >
               <Clapperboard className="w-4 h-4 text-amber-400" />
-              <span>🎬 Créer la suite (Épisode {(currentSavedItem?.episodeNumber || 1) + 1})</span>
+              <span>Créer la suite (Épisode {(currentSavedItem?.episodeNumber || 1) + 1})</span>
             </button>
           </div>
 
@@ -551,7 +576,7 @@ export function StoryboardPage() {
                     <div className="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 relative group">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
-                          🎨 Prompt Image Complet (Midjourney v6/v7)
+                          Prompt Image Complet (Midjourney v6/v7)
                         </span>
                         <button 
                           onClick={() => handleCopy(scene.imagePrompt, `img-${idx}`)}
@@ -568,7 +593,7 @@ export function StoryboardPage() {
                     <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-100 relative group">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
-                          🎬 Prompt Vidéo Tout-en-Un (Seedance / Kling / Runway)
+                          Prompt Vidéo Tout-en-Un (Seedance / Kling / Runway)
                         </span>
                         <button 
                           onClick={() => handleCopy(scene.videoPrompt, `vid-${idx}`)}
@@ -602,6 +627,7 @@ export function StoryboardPage() {
                 createdAt: Date.now(),
                 story: story || '',
                 style: style || 'Cinematic Noir',
+                dialogueLanguage,
                 sceneCount: sceneCount || 8,
                 sceneDuration: sceneDuration || 5,
                 data: storyboard,
@@ -610,7 +636,7 @@ export function StoryboardPage() {
               className="px-6 py-3 bg-[#1A1A1A] hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md cursor-pointer"
             >
               <Clapperboard className="w-4 h-4 text-amber-400" />
-              <span>🎬 Créer l'Épisode {(currentSavedItem?.episodeNumber || 1) + 1}</span>
+              <span>Créer l'Épisode {(currentSavedItem?.episodeNumber || 1) + 1}</span>
             </button>
           </div>
 
