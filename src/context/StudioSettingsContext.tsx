@@ -4,6 +4,11 @@ type StudioSettingsContextValue = {
   apiKey: string;
   setApiKey: (key: string) => void;
   clearApiKey: () => void;
+  agnesApiKey: string;
+  setAgnesApiKey: (key: string) => void;
+  clearAgnesApiKey: () => void;
+  videoProvider: 'veo' | 'agnes';
+  setVideoProvider: (value: 'veo' | 'agnes') => void;
   scriptModel: string;
   setScriptModel: (value: string) => void;
   imageModel: string;
@@ -27,6 +32,8 @@ type StudioSettingsContextValue = {
 };
 
 const SETTINGS_STORAGE_KEYS = {
+  agnesApiKey: 'AGNES_API_KEY',
+  videoProvider: 'STUDIO_VIDEO_PROVIDER',
   scriptModel: 'STUDIO_SCRIPT_MODEL',
   imageModel: 'STUDIO_IMAGE_MODEL',
   ttsModel: 'STUDIO_TTS_MODEL',
@@ -40,6 +47,7 @@ const SETTINGS_STORAGE_KEYS = {
 };
 
 const DEFAULT_SETTINGS = {
+  videoProvider: 'veo' as 'veo' | 'agnes',
   scriptModel: 'gemini-3.5-flash-lite',
   imageModel: 'gemini-2.5-flash-image',
   ttsModel: 'gemini-3.1-flash-tts-preview',
@@ -56,6 +64,10 @@ const StudioSettingsContext = createContext<StudioSettingsContextValue | null>(n
 
 export function StudioSettingsProvider({ children }: { children: React.ReactNode }) {
   const [apiKey, setApiKeyState] = useState(() => localStorage.getItem('GEMINI_API_KEY') || '');
+  const [agnesApiKey, setAgnesApiKeyState] = useState(() => localStorage.getItem(SETTINGS_STORAGE_KEYS.agnesApiKey) || '');
+  const [videoProvider, setVideoProviderState] = useState<'veo' | 'agnes'>(
+    () => (localStorage.getItem(SETTINGS_STORAGE_KEYS.videoProvider) as 'veo' | 'agnes') || DEFAULT_SETTINGS.videoProvider
+  );
   const [scriptModel, setScriptModelState] = useState(
     () => localStorage.getItem(SETTINGS_STORAGE_KEYS.scriptModel) || DEFAULT_SETTINGS.scriptModel
   );
@@ -95,6 +107,21 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
   const clearApiKey = () => {
     localStorage.removeItem('GEMINI_API_KEY');
     setApiKeyState('');
+  };
+
+  const setAgnesApiKey = (key: string) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.agnesApiKey, key);
+    setAgnesApiKeyState(key);
+  };
+
+  const clearAgnesApiKey = () => {
+    localStorage.removeItem(SETTINGS_STORAGE_KEYS.agnesApiKey);
+    setAgnesApiKeyState('');
+  };
+
+  const setVideoProvider = (value: 'veo' | 'agnes') => {
+    localStorage.setItem(SETTINGS_STORAGE_KEYS.videoProvider, value);
+    setVideoProviderState(value);
   };
 
   const setScriptModel = (value: string) => {
@@ -152,6 +179,11 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
       apiKey,
       setApiKey,
       clearApiKey,
+      agnesApiKey,
+      setAgnesApiKey,
+      clearAgnesApiKey,
+      videoProvider,
+      setVideoProvider,
       scriptModel,
       setScriptModel,
       imageModel,
@@ -173,7 +205,7 @@ export function StudioSettingsProvider({ children }: { children: React.ReactNode
       videoQuality,
       setVideoQuality
     }),
-    [apiKey, scriptModel, imageModel, ttsModel, selectedVoice, imageStyle, sceneCountMin, sceneCountMax, animateVideo, videoModel, videoQuality]
+    [apiKey, agnesApiKey, videoProvider, scriptModel, imageModel, ttsModel, selectedVoice, imageStyle, sceneCountMin, sceneCountMax, animateVideo, videoModel, videoQuality]
   );
 
   return <StudioSettingsContext.Provider value={value}>{children}</StudioSettingsContext.Provider>;

@@ -1,5 +1,6 @@
 {
   "name": "Heartlines AI",
   "description": "Workflow pour créer des vidéos TikTok poétiques de 30 secondes composées d'images et de voix off générées par l'IA.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

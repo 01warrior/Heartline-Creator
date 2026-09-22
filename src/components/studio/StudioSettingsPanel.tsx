@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Check, Key, Eye, EyeOff, AlertCircle, Trash2, CheckCircle2, Film, Sparkles } from 'lucide-react';
 import { AVAILABLE_VOICES, VIDEO_MODELS } from '../../services/gemini';
 import { useStudioSettings } from '../../context/StudioSettingsContext';
 
@@ -81,7 +82,13 @@ export function StudioSettingsPanel({
 }) {
   const { t } = useTranslation();
   const {
+    apiKey,
     clearApiKey,
+    agnesApiKey,
+    setAgnesApiKey,
+    clearAgnesApiKey,
+    videoProvider,
+    setVideoProvider,
     scriptModel,
     setScriptModel,
     imageModel,
@@ -103,6 +110,55 @@ export function StudioSettingsPanel({
     videoQuality,
     setVideoQuality
   } = useStudioSettings();
+
+  const [agnesKeyInput, setAgnesKeyInput] = React.useState(agnesApiKey || '');
+  const [showAgnesKey, setShowAgnesKey] = React.useState(false);
+  const [agnesKeyError, setAgnesKeyError] = React.useState<string | null>(null);
+  const [agnesKeySavedFeedback, setAgnesKeySavedFeedback] = React.useState(false);
+
+  React.useEffect(() => {
+    setAgnesKeyInput(agnesApiKey || '');
+  }, [agnesApiKey]);
+
+  const handleSaveAgnesKey = () => {
+    const trimmed = agnesKeyInput.trim();
+    if (!trimmed) {
+      setAgnesKeyError("La clé API Agnes ne peut pas être vide.");
+      return;
+    }
+    setAgnesApiKey(trimmed);
+    setAgnesKeyError(null);
+    setAgnesKeySavedFeedback(true);
+    setTimeout(() => setAgnesKeySavedFeedback(false), 2000);
+  };
+
+  const handleSelectProvider = (provider: 'veo' | 'agnes') => {
+    if (provider === 'agnes') {
+      const activeKey = (agnesApiKey || agnesKeyInput || '').trim();
+      if (!activeKey) {
+        setAgnesKeyError("La clé API Agnes est obligatoire pour sélectionner ce moteur d'animation. Veuillez renseigner votre clé Agnes.");
+        return;
+      }
+      if (!agnesApiKey && agnesKeyInput.trim()) {
+        setAgnesApiKey(agnesKeyInput.trim());
+      }
+    }
+    setAgnesKeyError(null);
+    setVideoProvider(provider);
+  };
+
+  const handleToggleAnimateVideo = () => {
+    const nextVal = !animateVideo;
+    if (nextVal && videoProvider === 'agnes') {
+      const activeKey = (agnesApiKey || agnesKeyInput || '').trim();
+      if (!activeKey) {
+        setAgnesKeyError("La clé API Agnes est obligatoire pour activer l'animation avec Agnes Video. Veuillez renseigner votre clé ci-dessous.");
+        return;
+      }
+    }
+    setAgnesKeyError(null);
+    setAnimateVideo(nextVal);
+  };
 
   const scriptModelOptions = [
     { value: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', description: t('studio.labels.flash38Desc') },
@@ -240,10 +296,21 @@ export function StudioSettingsPanel({
           {showSectionHeaders && (
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A8A196]">Animation</p>
-              <h3 className="text-xl font-sans font-bold text-[#1A1A1A] mt-2">Animation Vidéo (Veo)</h3>
+              <h3 className="text-xl font-sans font-bold text-[#1A1A1A] mt-2">Moteur d'Animation Vidéo</h3>
               <p className="text-sm text-[#7A7570] mt-2">
-                Animez vos scènes en clips vidéo cinématiques avec Veo 3.1.
+                Animez chaque scène de votre histoire avec Google Veo ou Agnes Video v2.0.
               </p>
+            </div>
+          )}
+
+          {/* Error Banner if validation fails */}
+          {agnesKeyError && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-bold text-red-800">Clé API requise</p>
+                <p className="text-xs text-red-700 mt-0.5">{agnesKeyError}</p>
+              </div>
             </div>
           )}
 
@@ -251,7 +318,7 @@ export function StudioSettingsPanel({
           <div className="space-y-4">
             <button
               type="button"
-              onClick={() => setAnimateVideo(!animateVideo)}
+              onClick={handleToggleAnimateVideo}
               className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 transition-all shadow-sm cursor-pointer ${
                 animateVideo 
                   ? 'border-[#C5A880] bg-[#C5A880]/5' 
@@ -265,50 +332,219 @@ export function StudioSettingsPanel({
                 <div className="text-left">
                   <span className="text-sm font-bold text-[#1A1A1A] block">Animer les scènes en vidéo</span>
                   <span className="text-[10px] text-[#A8A196] leading-tight block mt-0.5">
-                    Chaque image sera animée en clip vidéo via Veo (image-to-video)
+                    Chaque image générée sera convertie en clip cinématique fluide
                   </span>
                 </div>
               </div>
               {animateVideo && (
-                <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-[9px] font-bold uppercase tracking-widest rounded-full shrink-0">
-                  Payant
+                <span className="px-2.5 py-1 bg-[#C5A880]/20 text-[#8F744F] text-[9px] font-bold uppercase tracking-widest rounded-full shrink-0">
+                  Actif
                 </span>
               )}
             </button>
-
-            {/* Warning about costs */}
-            {animateVideo && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                <p className="text-xs text-amber-800 leading-relaxed">
-                  <strong>⚠️ API payante requise</strong> — La génération vidéo Veo nécessite un billing actif sur votre compte Google Cloud. 
-                  Coût estimé pour 6 scènes (~30s) : <strong>~{videoModel === 'veo-3.1-lite-generate-preview' ? '1.50$' : videoModel === 'veo-3.1-fast-generate-preview' ? '3.00$' : '12.00$'}</strong> en {videoQuality}.
-                </p>
-              </div>
-            )}
           </div>
 
-          {/* Video model & quality selectors (shown only when animation is enabled) */}
-          {animateVideo && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
-              <CustomSelect
-                label="Modèle Vidéo"
-                value={videoModel}
-                onChange={(val) => {
-                  setVideoModel(val);
-                  // Reset quality to 1080p if switching to a model that doesn't support current quality
-                  const newModel = VIDEO_MODELS.find(m => m.id === val);
-                  if (!newModel?.supports4K && videoQuality === '4k') {
-                    setVideoQuality('1080p');
-                  }
-                }}
-                options={videoModelOptions}
-              />
-              <CustomSelect
-                label="Qualité Vidéo"
-                value={videoQuality}
-                onChange={setVideoQuality}
-                options={videoQualityOptions}
-              />
+          {/* Provider Selection */}
+          <div className="space-y-3">
+            <label className="block text-xs uppercase tracking-widest font-bold text-[#A8A196]">
+              Sélectionnez le moteur d'animation
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Google Veo Card */}
+              <button
+                type="button"
+                onClick={() => handleSelectProvider('veo')}
+                className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                  videoProvider === 'veo'
+                    ? 'border-[#C5A880] bg-[#C5A880]/5 shadow-sm'
+                    : 'border-[#E5E1DA] bg-white hover:border-[#C5A880]/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Film className={`w-4 h-4 ${videoProvider === 'veo' ? 'text-[#C5A880]' : 'text-[#7A7570]'}`} />
+                    <span className="text-sm font-bold text-[#1A1A1A]">Google Veo (3.1)</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    videoProvider === 'veo' ? 'border-[#C5A880] bg-[#C5A880]' : 'border-[#D1C9BE]'
+                  }`}>
+                    {videoProvider === 'veo' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-[#7A7570] leading-relaxed">
+                  Modèles Veo Lite & Fast via votre compte Google AI Studio.
+                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-[10px] bg-[#EAE6DF] text-[#555] px-2 py-0.5 rounded font-mono">
+                    720p / 1080p
+                  </span>
+                  <span className="text-[10px] text-[#A8A196]">Payant GCP</span>
+                </div>
+              </button>
+
+              {/* Agnes Video Card */}
+              <button
+                type="button"
+                onClick={() => handleSelectProvider('agnes')}
+                className={`p-4 rounded-2xl border-2 text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                  videoProvider === 'agnes'
+                    ? 'border-[#C5A880] bg-[#C5A880]/5 shadow-sm'
+                    : 'border-[#E5E1DA] bg-white hover:border-[#C5A880]/40'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className={`w-4 h-4 ${videoProvider === 'agnes' ? 'text-[#C5A880]' : 'text-[#7A7570]'}`} />
+                    <span className="text-sm font-bold text-[#1A1A1A]">Agnes Video (v2.0)</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    videoProvider === 'agnes' ? 'border-[#C5A880] bg-[#C5A880]' : 'border-[#D1C9BE]'
+                  }`}>
+                    {videoProvider === 'agnes' && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                </div>
+                <p className="text-[11px] text-[#7A7570] leading-relaxed">
+                  Moteur haute cohérence Agnes AI (121 frames @ 24fps).
+                </p>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-[10px] bg-[#EAE6DF] text-[#555] px-2 py-0.5 rounded font-mono">
+                    apihub.agnes-ai.com
+                  </span>
+                  {agnesApiKey ? (
+                    <span className="text-[10px] text-green-700 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Clé OK
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-700 font-bold">
+                      Clé requise
+                    </span>
+                  )}
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Agnes Key Input Box */}
+          <div className={`p-5 rounded-2xl border transition-all ${videoProvider === 'agnes' ? 'bg-[#FAF9F7] border-[#C5A880]' : 'bg-white border-[#E5E1DA]'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Key className="w-4 h-4 text-[#C5A880]" />
+                <span className="text-xs uppercase tracking-wider font-bold text-[#1A1A1A]">
+                  Clé API Agnes Video v2.0
+                </span>
+              </div>
+              {agnesApiKey ? (
+                <span className="flex items-center gap-1 text-[11px] font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-0.5 rounded-full">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Clé active
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                  Non configurée
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[#7A7570] mb-3">
+              Indispensable si Agnes Video est sélectionné. Transmise de façon sécurisée à l'endpoint Agnes AI.
+            </p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showAgnesKey ? "text" : "password"}
+                  value={agnesKeyInput}
+                  onChange={(e) => {
+                    setAgnesKeyInput(e.target.value);
+                    if (agnesKeyError) setAgnesKeyError(null);
+                  }}
+                  placeholder="Collez votre clé API Agnes..."
+                  className="w-full pl-3 pr-10 py-2.5 text-xs font-mono bg-white border border-[#E5E1DA] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C5A880]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAgnesKey(!showAgnesKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  {showAgnesKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveAgnesKey}
+                className="px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#333] text-white text-xs font-bold rounded-xl transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+              >
+                {agnesKeySavedFeedback ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-green-400" />
+                    Enregistrée
+                  </>
+                ) : (
+                  "Enregistrer"
+                )}
+              </button>
+              {agnesApiKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearAgnesApiKey();
+                    setAgnesKeyInput('');
+                    if (videoProvider === 'agnes') setVideoProvider('veo');
+                  }}
+                  className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border border-[#E5E1DA]"
+                  title="Supprimer la clé Agnes"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Details for Google Veo */}
+          {videoProvider === 'veo' && (
+            <div className="space-y-4">
+              {animateVideo && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    <strong>⚠️ API Google Cloud requise</strong> — La génération vidéo Veo nécessite un compte de facturation actif. 
+                    Coût estimé pour 6 scènes (~30s) : <strong>~{videoModel === 'veo-3.1-lite-generate-preview' ? '1.50$' : videoModel === 'veo-3.1-fast-generate-preview' ? '3.00$' : '12.00$'}</strong> en {videoQuality}.
+                  </p>
+                </div>
+              )}
+
+              {animateVideo && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <CustomSelect
+                    label="Modèle Vidéo"
+                    value={videoModel}
+                    onChange={(val) => {
+                      setVideoModel(val);
+                      const newModel = VIDEO_MODELS.find(m => m.id === val);
+                      if (!newModel?.supports4K && videoQuality === '4k') {
+                        setVideoQuality('1080p');
+                      }
+                    }}
+                    options={videoModelOptions}
+                  />
+                  <CustomSelect
+                    label="Qualité Vidéo"
+                    value={videoQuality}
+                    onChange={setVideoQuality}
+                    options={videoQualityOptions}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Details for Agnes Video */}
+          {videoProvider === 'agnes' && (
+            <div className="bg-white border border-[#E5E1DA] rounded-2xl p-4 space-y-2 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#1A1A1A]">Spécifications Agnes Video v2.0</span>
+                <span className="text-[10px] font-mono bg-[#EAE6DF] text-[#555] px-2 py-0.5 rounded">121 frames @ 24fps</span>
+              </div>
+              <p className="text-xs text-[#7A7570] leading-relaxed">
+                Toutes les scènes seront générées via l'API Agnes Video (image-to-video en 768x1152 ou 1152x768). Le suivi des tâches et le téléchargement du MP4 final sont entièrement automatisés.
+              </p>
             </div>
           )}
         </section>
@@ -319,20 +555,51 @@ export function StudioSettingsPanel({
           {showSectionHeaders && (
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#A8A196]">Securite</p>
-              <h3 className="text-xl font-sans font-bold text-[#1A1A1A] mt-2">Cle API</h3>
+              <h3 className="text-xl font-sans font-bold text-[#1A1A1A] mt-2">Clés API</h3>
               <p className="text-sm text-[#7A7570] mt-2">
-                Gerer la cle associee a votre compte pour les appels IA.
+                Gérez les clés associées à vos comptes Google Gemini et Agnes Video.
               </p>
             </div>
           )}
 
-          <div className="pt-2">
-            <button
-              onClick={clearApiKey}
-              className="text-xs font-bold tracking-widest uppercase text-[#A8A196] hover:text-[#1A1A1A] transition-colors cursor-pointer"
-            >
-              {t('studio.btnRemoveKey')}
-            </button>
+          <div className="space-y-4">
+            {/* Gemini Key Status */}
+            <div className="p-4 rounded-2xl border border-[#E5E1DA] bg-white flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#1A1A1A]">Google Gemini API</p>
+                <p className="text-[11px] text-[#7A7570] mt-0.5">Utilisée pour le script, les voix TTS et la génération d'images</p>
+              </div>
+              <button
+                onClick={clearApiKey}
+                className="text-xs font-bold tracking-widest uppercase text-red-600 hover:text-red-700 transition-colors cursor-pointer"
+              >
+                {t('studio.btnRemoveKey')}
+              </button>
+            </div>
+
+            {/* Agnes Key Status */}
+            <div className="p-4 rounded-2xl border border-[#E5E1DA] bg-white flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#1A1A1A]">Agnes Video API</p>
+                <p className="text-[11px] text-[#7A7570] mt-0.5">
+                  {agnesApiKey ? "Clé configurée et prête pour l'animation" : "Aucune clé configurée"}
+                </p>
+              </div>
+              {agnesApiKey ? (
+                <button
+                  onClick={() => {
+                    clearAgnesApiKey();
+                    setAgnesKeyInput('');
+                    if (videoProvider === 'agnes') setVideoProvider('veo');
+                  }}
+                  className="text-xs font-bold tracking-widest uppercase text-red-600 hover:text-red-700 transition-colors cursor-pointer"
+                >
+                  Supprimer
+                </button>
+              ) : (
+                <span className="text-xs font-bold text-[#A8A196]">Optionnelle</span>
+              )}
+            </div>
           </div>
         </section>
       )}

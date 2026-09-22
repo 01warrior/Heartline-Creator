@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { audioDataToBlob, generateFullPoemAudio, generateImageForPhrase, generateVideoForScene, playPcmAudio } from '../../services/gemini';
+import { audioDataToBlob, generateFullPoemAudio, generateImageForPhrase, playPcmAudio } from '../../services/gemini';
+import { getVideoProvider } from '../../services/video';
 import { calculateActualCost } from '../../utils/costCalculator';
 import type { Scene } from './workflowConfig';
 
@@ -9,6 +10,8 @@ type ErrorState = { title: string; message: string } | null;
 
 type UseMediaGenerationParams = {
   apiKey: string;
+  agnesApiKey?: string;
+  videoProvider?: 'veo' | 'agnes';
   scenes: Scene[];
   setScenes: React.Dispatch<React.SetStateAction<Scene[]>>;
   imageStyle: string;
@@ -24,6 +27,8 @@ type UseMediaGenerationParams = {
 
 export function useMediaGeneration({
   apiKey,
+  agnesApiKey,
+  videoProvider = 'veo',
   scenes,
   setScenes,
   imageStyle,
@@ -102,6 +107,9 @@ export function useMediaGeneration({
 
       // ── Phase 2: Animate Images to Video (if enabled) ─────────────
       if (animateVideo) {
+        const provider = getVideoProvider(videoProvider);
+        const activeKey = videoProvider === 'agnes' ? (agnesApiKey || '') : apiKey;
+
         for (let i = 0; i < currentScenes.length; i++) {
           // Skip if no image or already has video
           if (!currentScenes[i].image || currentScenes[i].video) {
@@ -111,15 +119,18 @@ export function useMediaGeneration({
           }
 
           try {
-            setVideoStatus(`Animation scène ${i + 1}/${currentScenes.length}...`);
+            setVideoStatus(`Animation scène ${i + 1}/${currentScenes.length} (${provider.name})...`);
             
-            const videoDataUrl = await generateVideoForScene(
-              apiKey,
-              currentScenes[i].image!,
-              currentScenes[i].phrase,
-              videoModel,
-              videoQuality,
-              (status) => setVideoStatus(`Scène ${i + 1}: ${status}`)
+            const videoDataUrl = await provider.generateVideo(
+              {
+                prompt: currentScenes[i].phrase,
+                imageUrl: currentScenes[i].image!,
+                model: videoProvider === 'veo' ? videoModel : 'agnes-video-v2.0',
+                quality: videoQuality,
+                aspectRatio: '9:16',
+                onProgress: (status) => setVideoStatus(`Scène ${i + 1}: ${status}`)
+              },
+              activeKey
             );
 
             const newScenes = [...currentScenes];

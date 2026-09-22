@@ -36,7 +36,9 @@ export function StudioCreatePage() {
     sceneCountMax,
     animateVideo,
     videoModel,
-    videoQuality
+    videoQuality,
+    agnesApiKey,
+    videoProvider
   } = useStudioSettings();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
@@ -210,6 +212,8 @@ export function StudioCreatePage() {
     mediaCost
   } = useMediaGeneration({
     apiKey,
+    agnesApiKey,
+    videoProvider,
     scenes,
     setScenes,
     imageStyle,
