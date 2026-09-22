@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStudioSettings } from '../context/StudioSettingsContext';
-import { generateStoryboard } from '../services/gemini';
+import { generateStoryboard, StoryboardContinuationContext } from '../services/gemini';
 import { CustomSelect } from '../components/studio/StudioSettingsPanel';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { 
@@ -12,7 +12,7 @@ import {
   CheckmarkBadge01Icon,
   Alert02Icon
 } from '@hugeicons/core-free-icons';
-import { History, Trash2, X, ArrowUpRight, Clock, Calendar, BookmarkCheck } from 'lucide-react';
+import { History, Trash2, X, ArrowUpRight, Clock, Calendar, BookmarkCheck, Clapperboard, Layers, PlusCircle, ArrowRight } from 'lucide-react';
 
 interface Character {
   name: string;
@@ -41,6 +41,15 @@ interface SavedStoryboard {
   sceneCount: number;
   sceneDuration: number;
   data: StoryboardData;
+  episodeNumber?: number;
+  seriesTitle?: string;
+  parentStoryboardId?: string;
+}
+
+interface ContinuationState {
+  active: boolean;
+  parentItem: SavedStoryboard;
+  episodeNumber: number;
 }
 
 const STORAGE_KEY = 'storyboards_history_v1';
@@ -56,6 +65,8 @@ export function StoryboardPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [storyboard, setStoryboard] = useState<StoryboardData | null>(null);
+  const [currentSavedItem, setCurrentSavedItem] = useState<SavedStoryboard | null>(null);
+  const [continuation, setContinuation] = useState<ContinuationState | null>(null);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -84,13 +95,31 @@ export function StoryboardPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleStartContinuation = (parentItem: SavedStoryboard) => {
+    const nextEp = (parentItem.episodeNumber || 1) + 1;
+    setContinuation({
+      active: true,
+      parentItem,
+      episodeNumber: nextEp
+    });
+    setStyle(parentItem.style);
+    setStory('');
+    setIsHistoryOpen(false);
+    setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelContinuation = () => {
+    setContinuation(null);
+  };
+
   const handleGenerate = async () => {
     if (!apiKey) {
       setError("Veuillez configurer votre clé API Gemini dans les paramètres.");
       return;
     }
     if (!story.trim()) {
-      setError("Veuillez entrer une histoire ou un script.");
+      setError("Veuillez entrer une histoire ou la description du nouvel épisode.");
       return;
     }
 
@@ -98,8 +127,25 @@ export function StoryboardPage() {
     setError('');
     
     try {
-      const data = await generateStoryboard(apiKey, scriptModel, story, style, sceneCount, sceneDuration);
+      let continuationContext: StoryboardContinuationContext | undefined;
+
+      if (continuation && continuation.active) {
+        continuationContext = {
+          episodeNumber: continuation.episodeNumber,
+          seriesTitle: continuation.parentItem.seriesTitle || continuation.parentItem.story.slice(0, 30),
+          previousStory: continuation.parentItem.story,
+          previousCharacters: continuation.parentItem.data.characters || [],
+          previousScenes: continuation.parentItem.data.scenes || []
+        };
+      }
+
+      const data = await generateStoryboard(apiKey, scriptModel, story, style, sceneCount, sceneDuration, continuationContext);
       setStoryboard(data);
+
+      const nextEpNumber = continuation && continuation.active ? continuation.episodeNumber : 1;
+      const seriesTitle = continuation && continuation.active
+        ? (continuation.parentItem.seriesTitle || continuation.parentItem.story.slice(0, 35) + '...')
+        : story.slice(0, 35) + '...';
 
       // Auto save to history
       const newEntry: SavedStoryboard = {
@@ -109,9 +155,16 @@ export function StoryboardPage() {
         style,
         sceneCount,
         sceneDuration,
-        data
+        data,
+        episodeNumber: nextEpNumber,
+        seriesTitle,
+        parentStoryboardId: continuation && continuation.active ? continuation.parentItem.id : undefined
       };
-      const updatedList = [newEntry, ...savedStoryboards.filter(item => item.story !== story.trim())].slice(0, 50);
+
+      setCurrentSavedItem(newEntry);
+      setContinuation(null);
+
+      const updatedList = [newEntry, ...savedStoryboards.filter(item => item.id !== newEntry.id)].slice(0, 50);
       persistStoryboards(updatedList);
     } catch (err: any) {
       setError(err.message || "Erreur lors de la génération du storyboard.");
@@ -126,6 +179,8 @@ export function StoryboardPage() {
     setSceneCount(item.sceneCount);
     setSceneDuration(item.sceneDuration);
     setStoryboard(item.data);
+    setCurrentSavedItem(item);
+    setContinuation(null);
     setIsHistoryOpen(false);
     window.scrollTo({ top: 300, behavior: 'smooth' });
   };
@@ -134,11 +189,15 @@ export function StoryboardPage() {
     e.stopPropagation();
     const updated = savedStoryboards.filter(item => item.id !== id);
     persistStoryboards(updated);
+    if (currentSavedItem?.id === id) {
+      setCurrentSavedItem(null);
+    }
   };
 
   const handleClearAllHistory = () => {
     if (window.confirm("Voulez-vous vraiment effacer tout l'historique des storyboards ?")) {
       persistStoryboards([]);
+      setCurrentSavedItem(null);
     }
   };
 
@@ -153,7 +212,7 @@ export function StoryboardPage() {
             Directeur IA & Storyboard
           </h1>
           <p className="text-sm text-[#8C8275] mt-1 font-medium max-w-2xl">
-            Générez un storyboard professionnel avec vos prompts Midjourney et Runway/Kling pré-découpés pour vos vidéos externes.
+            Générez un storyboard professionnel avec casting, raccord de scènes et création d'épisodes en série (Partie 1, 2, 3).
           </p>
         </div>
 
@@ -175,88 +234,153 @@ export function StoryboardPage() {
         </div>
       </div>
 
-      {/* Input Form with unified full-height textarea */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E5E1DA] shadow-sm flex flex-col lg:flex-row gap-8 items-stretch">
+      {/* Input Form */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E5E1DA] shadow-sm flex flex-col gap-6">
         
-        {/* Left: Story (Takes full available height) */}
-        <div className="flex-1 flex flex-col gap-3 min-h-[280px]">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-[#1A1A1A]">L'histoire (Drames, rebondissements, actions)</label>
-            <span className="text-xs text-[#A8A196] font-medium">
-              {story.length} caractère{story.length > 1 ? 's' : ''}
-            </span>
-          </div>
-          <textarea
-            value={story}
-            onChange={(e) => setStory(e.target.value)}
-            placeholder="Décrivez votre histoire ici. Ex: Un astronaute se retrouve seul sur Mars, il découvre une ancienne ruine extraterrestre cachée sous les sables..."
-            className="w-full flex-1 min-h-[220px] p-4 rounded-xl border border-[#E5E1DA] bg-[#FAF9F7] text-[#1A1A1A] resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 transition-shadow leading-relaxed"
-          />
-        </div>
-
-        {/* Right: Settings */}
-        <div className="w-full lg:w-80 flex flex-col justify-between gap-5">
-          <div className="flex flex-col gap-5">
-            <CustomSelect
-              label="Style Visuel"
-              value={style}
-              onChange={setStyle}
-              options={[
-                { value: "Cinematic Noir", label: "Cinematic Noir", description: "Film sombre" },
-                { value: "Pixar 3D", label: "Pixar 3D", description: "Animation moderne" },
-                { value: "Hyper Realistic", label: "Hyper Réaliste", description: "Photographie" },
-                { value: "TikTok Fruit/Veggie", label: "Personnage Fruit/Légume", description: "Trend TikTok, Anthropomorphe" },
-                { value: "Anthropomorphic Animal", label: "Animal Anthropomorphe", description: "Animaux humanisés (ex: Zootopie)" },
-                { value: "Food Commercial", label: "Food Commercial", description: "Macro, slow-motion, appétissant" },
-                { value: "Nature Documentary", label: "Documentaire Nature", description: "Animaux, macro, National Geographic" },
-                { value: "Vintage Anime", label: "Vintage Anime", description: "Style 90s" },
-                { value: "Cyberpunk", label: "Cyberpunk", description: "Néon, futuriste" }
-              ]}
-            />
-
-            <div className="flex gap-4">
-              <div className="flex flex-col gap-2 flex-1">
-                <label className="text-sm font-bold text-[#1A1A1A]">Nombre de scènes</label>
-                <input
-                  type="number"
-                  value={sceneCount}
-                  onChange={(e) => setSceneCount(Number(e.target.value))}
-                  min={8}
-                  max={15}
-                  className="w-full p-3 rounded-xl border border-[#E5E1DA] bg-[#FAF9F7] text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
+        {/* Continuation Banner */}
+        {continuation && continuation.active && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-50/80 to-orange-50/60 border border-amber-200 animate-in fade-in slide-in-from-top-2 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-3 py-1 bg-amber-500 text-white text-xs font-bold uppercase tracking-widest rounded-full shadow-xs flex items-center gap-1.5">
+                  <Clapperboard className="w-3.5 h-3.5" />
+                  Suite Narrative — Épisode {continuation.episodeNumber}
+                </span>
+                <span className="text-xs text-amber-900 font-bold">
+                  Raccord direct avec la fin de l'Épisode {continuation.episodeNumber - 1}
+                </span>
               </div>
-              <div className="flex flex-col gap-2 flex-1">
-                <label className="text-sm font-bold text-[#1A1A1A]">Durée / scène (s)</label>
-                <input
-                  type="number"
-                  value={sceneDuration}
-                  onChange={(e) => setSceneDuration(Number(e.target.value))}
-                  min={2}
-                  max={20}
-                  className="w-full p-3 rounded-xl border border-[#E5E1DA] bg-[#FAF9F7] text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
+              <button
+                type="button"
+                onClick={handleCancelContinuation}
+                className="text-xs font-semibold text-gray-500 hover:text-red-600 flex items-center gap-1 cursor-pointer transition-colors px-2 py-1 rounded-lg hover:bg-red-50"
+              >
+                <X className="w-4 h-4" />
+                <span>Quitter le mode suite</span>
+              </button>
+            </div>
+
+            {/* Cliffhanger reminder card */}
+            <div className="bg-white/90 p-3.5 rounded-xl border border-amber-200/70 text-xs flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-amber-950">
+                <span>🎬 Point d'accroche (Fin de l'Épisode {continuation.episodeNumber - 1}) :</span>
+                <span className="font-mono text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                  Scène finale
+                </span>
+              </div>
+              <p className="text-xs text-[#575047] italic leading-relaxed">
+                "{continuation.parentItem.data.scenes?.[continuation.parentItem.data.scenes.length - 1]?.frenchSummary || 
+                  continuation.parentItem.story}"
+              </p>
+            </div>
+
+            {/* Preserved Characters Badges */}
+            {continuation.parentItem.data.characters && continuation.parentItem.data.characters.length > 0 && (
+              <div className="flex items-center gap-2 text-[11px] text-[#7A7570] flex-wrap">
+                <span className="font-bold text-amber-950">Personnages conservés (continuité visuelle) :</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {continuation.parentItem.data.characters.map((char, i) => (
+                    <span key={i} className="bg-white px-2.5 py-0.5 rounded-md border border-[#E5E1DA] font-semibold text-[#1A1A1A] text-[11px]">
+                      👤 {char.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col lg:flex-row gap-8 items-stretch">
+          {/* Left: Story Input */}
+          <div className="flex-1 flex flex-col gap-3 min-h-[260px]">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-[#1A1A1A]">
+                {continuation && continuation.active
+                  ? `Que se passe-t-il dans l'Épisode ${continuation.episodeNumber} ?`
+                  : "L'histoire (Drames, rebondissements, actions)"}
+              </label>
+              <span className="text-xs text-[#A8A196] font-medium">
+                {story.length} caractère{story.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <textarea
+              value={story}
+              onChange={(e) => setStory(e.target.value)}
+              placeholder={
+                continuation && continuation.active
+                  ? `Décrivez les événements de l'Épisode ${continuation.episodeNumber}... La scène 1 s'enchaînera immédiatement avec la fin de l'épisode précédent. Ex: Le protagoniste franchit la porte, découvre la salle secrète et trouve un coffre sous le plancher...`
+                  : "Décrivez votre histoire ici. Ex: Un astronaute se retrouve seul sur Mars, il découvre une ancienne ruine extraterrestre cachée sous les sables..."
+              }
+              className="w-full flex-1 min-h-[200px] p-4 rounded-xl border border-[#E5E1DA] bg-[#FAF9F7] text-[#1A1A1A] resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 transition-shadow leading-relaxed"
+            />
+          </div>
+
+          {/* Right: Settings */}
+          <div className="w-full lg:w-80 flex flex-col justify-between gap-5">
+            <div className="flex flex-col gap-5">
+              <CustomSelect
+                label="Style Visuel"
+                value={style}
+                onChange={setStyle}
+                options={[
+                  { value: "Cinematic Noir", label: "Cinematic Noir", description: "Film sombre" },
+                  { value: "Pixar 3D", label: "Pixar 3D", description: "Animation moderne" },
+                  { value: "Hyper Realistic", label: "Hyper Réaliste", description: "Photographie" },
+                  { value: "TikTok Fruit/Veggie", label: "Personnage Fruit/Légume", description: "Trend TikTok, Anthropomorphe" },
+                  { value: "Anthropomorphic Animal", label: "Animal Anthropomorphe", description: "Animaux humanisés (ex: Zootopie)" },
+                  { value: "Food Commercial", label: "Food Commercial", description: "Macro, slow-motion, appétissant" },
+                  { value: "Nature Documentary", label: "Documentaire Nature", description: "Animaux, macro, National Geographic" },
+                  { value: "Vintage Anime", label: "Vintage Anime", description: "Style 90s" },
+                  { value: "Cyberpunk", label: "Cyberpunk", description: "Néon, futuriste" }
+                ]}
+              />
+
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-2 flex-1">
+                  <label className="text-sm font-bold text-[#1A1A1A]">Nombre de scènes</label>
+                  <input
+                    type="number"
+                    value={sceneCount}
+                    onChange={(e) => setSceneCount(Number(e.target.value))}
+                    min={4}
+                    max={15}
+                    className="w-full p-3 rounded-xl border border-[#E5E1DA] bg-[#FAF9F7] text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 flex-1">
+                  <label className="text-sm font-bold text-[#1A1A1A]">Durée / scène (s)</label>
+                  <input
+                    type="number"
+                    value={sceneDuration}
+                    onChange={(e) => setSceneDuration(Number(e.target.value))}
+                    min={2}
+                    max={20}
+                    className="w-full p-3 rounded-xl border border-[#E5E1DA] bg-[#FAF9F7] text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="w-full mt-4 py-3.5 bg-[#1A1A1A] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
-          >
-            {isGenerating ? (
-              <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                Écriture en cours...
-              </span>
-            ) : (
-              <>
-                <HugeiconsIcon icon={SparklesIcon} size={20} className="text-amber-400" />
-                Générer le Storyboard
-              </>
-            )}
-          </button>
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="w-full mt-4 py-3.5 bg-[#1A1A1A] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#333] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+            >
+              {isGenerating ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Écriture de l'épisode en cours...
+                </span>
+              ) : (
+                <>
+                  <HugeiconsIcon icon={SparklesIcon} size={20} className="text-amber-400" />
+                  {continuation && continuation.active
+                    ? `🎬 Générer l'Épisode ${continuation.episodeNumber}`
+                    : "Générer le Storyboard"}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -272,6 +396,50 @@ export function StoryboardPage() {
       {storyboard && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-700 pb-12">
           
+          {/* Episode Banner + Continuation Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-3xl">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                {currentSavedItem?.episodeNumber ? `E${currentSavedItem.episodeNumber}` : 'E1'}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold uppercase tracking-wider text-amber-950">
+                    {currentSavedItem?.episodeNumber && currentSavedItem.episodeNumber > 1 
+                      ? `Épisode ${currentSavedItem.episodeNumber}` 
+                      : 'Épisode 1 (Pilote)'}
+                  </span>
+                  {currentSavedItem?.seriesTitle && (
+                    <span className="text-[11px] bg-white border border-amber-200 text-amber-800 px-2.5 py-0.5 rounded-full font-semibold">
+                      Série : {currentSavedItem.seriesTitle}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#7A7570] mt-0.5">
+                  Storyboard complet prêt pour la production Midjourney et Seedance/Kling.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleStartContinuation(currentSavedItem || {
+                id: `temp_${Date.now()}`,
+                createdAt: Date.now(),
+                story,
+                style,
+                sceneCount,
+                sceneDuration,
+                data: storyboard,
+                episodeNumber: 1
+              })}
+              className="px-5 py-3 bg-[#1A1A1A] hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md cursor-pointer shrink-0"
+            >
+              <Clapperboard className="w-4 h-4 text-amber-400" />
+              <span>🎬 Créer la suite (Épisode {(currentSavedItem?.episodeNumber || 1) + 1})</span>
+            </button>
+          </div>
+
           {/* Characters Section */}
           {storyboard.characters && storyboard.characters.length > 0 && (
             <div className="flex flex-col gap-4">
@@ -389,6 +557,33 @@ export function StoryboardPage() {
           </div>
           )}
 
+          {/* Bottom Call-To-Action for next episode */}
+          <div className="flex flex-col sm:flex-row items-center justify-between p-6 bg-white border border-[#E5E1DA] rounded-3xl shadow-sm gap-4">
+            <div>
+              <h3 className="text-base font-bold text-[#1A1A1A]">Envie de poursuivre cette saga ?</h3>
+              <p className="text-xs text-[#7A7570] mt-0.5">
+                Créez l'Épisode {(currentSavedItem?.episodeNumber || 1) + 1} avec raccord direct sur la Scène {storyboard.scenes.length}.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleStartContinuation(currentSavedItem || {
+                id: `temp_${Date.now()}`,
+                createdAt: Date.now(),
+                story,
+                style,
+                sceneCount,
+                sceneDuration,
+                data: storyboard,
+                episodeNumber: 1
+              })}
+              className="px-6 py-3 bg-[#1A1A1A] hover:bg-amber-600 text-white text-xs font-bold rounded-2xl flex items-center gap-2 transition-all shadow-md cursor-pointer"
+            >
+              <Clapperboard className="w-4 h-4 text-amber-400" />
+              <span>🎬 Créer l'Épisode {(currentSavedItem?.episodeNumber || 1) + 1}</span>
+            </button>
+          </div>
+
         </div>
       )}
 
@@ -445,7 +640,7 @@ export function StoryboardPage() {
                     </div>
                     <h4 className="font-bold text-[#1A1A1A] text-base mb-1">Aucun storyboard</h4>
                     <p className="text-xs leading-relaxed max-w-xs">
-                      Vos storyboards générés seront automatiquement sauvegardés ici. Vous pourrez les recharger à tout moment.
+                      Vos storyboards générés seront automatiquement sauvegardés ici. Vous pourrez les recharger ou en créer les suites à tout moment.
                     </p>
                   </div>
                 ) : (
@@ -457,23 +652,44 @@ export function StoryboardPage() {
                     >
                       {/* Meta top */}
                       <div className="flex items-center justify-between text-xs text-[#8C8275]">
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-[#A8A196]" />
-                          {new Date(item.createdAt).toLocaleDateString('fr-FR', {
-                            day: 'numeric',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1 font-medium">
+                            <Calendar className="w-3.5 h-3.5 text-[#A8A196]" />
+                            {new Date(item.createdAt).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                          {item.episodeNumber && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                              Épisode {item.episodeNumber}
+                            </span>
+                          )}
+                        </div>
                         
-                        <button
-                          onClick={(e) => handleDeleteItem(item.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="Supprimer ce storyboard"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartContinuation(item);
+                            }}
+                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors text-[11px] font-bold flex items-center gap-1"
+                            title="Créer la suite de cet épisode"
+                          >
+                            <Clapperboard className="w-3.5 h-3.5" />
+                            <span>+ Suite</span>
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteItem(item.id, e)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Supprimer ce storyboard"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Excerpt */}

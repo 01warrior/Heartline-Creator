@@ -271,20 +271,80 @@ export async function playPcmAudio(base64Data: string, onProgress?: (percent: nu
   });
 }
 
+export interface StoryboardContinuationContext {
+  episodeNumber: number;
+  seriesTitle?: string;
+  previousStory: string;
+  previousCharacters: Array<{
+    name: string;
+    description: string;
+    visualBlock: string;
+    imagePrompt: string;
+  }>;
+  previousScenes: Array<{
+    sceneNumber: number;
+    frenchSummary?: string;
+    imagePrompt: string;
+    videoPrompt: string;
+  }>;
+}
+
 export async function generateStoryboard(
   apiKey: string,
   modelName: string,
   story: string,
   style: string,
   sceneCount: number,
-  sceneDuration: number
+  sceneDuration: number,
+  continuation?: StoryboardContinuationContext
 ): Promise<any> {
   const ai = getAI(apiKey);
 
+  let continuationInstructions = '';
+  if (continuation && continuation.episodeNumber > 1) {
+    const charactersList = (continuation.previousCharacters || [])
+      .map((c) => `- ${c.name} (${c.description}): visualBlock = "${c.visualBlock}"`)
+      .join('\n');
+
+    const scenesSummary = (continuation.previousScenes || [])
+      .map((s) => `  * Scene ${s.sceneNumber}: ${s.frenchSummary || 'Action'}`)
+      .join('\n');
+
+    const lastScene = continuation.previousScenes && continuation.previousScenes.length > 0 
+      ? continuation.previousScenes[continuation.previousScenes.length - 1]
+      : null;
+
+    continuationInstructions = `
+  ======================================================================
+  CRITICAL: MULTI-PART EPISODIC CONTINUATION (EPISODE ${continuation.episodeNumber})
+  ======================================================================
+  You are writing EPISODE ${continuation.episodeNumber} of an ongoing series!
+
+  1. ESTABLISHED CHARACTERS (VISUAL CONSISTENCY MANDATE):
+  The following characters already exist from previous episodes. If any of them appear in this episode, you MUST REUSE THEIR EXACT 'visualBlock' word-for-word to guarantee 100% visual consistency:
+${charactersList || 'None specified.'}
+
+  2. SUMMARY OF PREVIOUS EPISODE:
+  Previous premise: "${continuation.previousStory}"
+  Scene progression of previous episode:
+${scenesSummary || 'Not provided.'}
+
+  3. FINAL SCENE OF PREVIOUS EPISODE (THE IMMEDIATE HOOK / POINT OF CONNECTION):
+  ${lastScene ? `Last Scene #${lastScene.sceneNumber}: "${lastScene.frenchSummary || ''}"\nPrompt: ${lastScene.videoPrompt}` : 'None'}
+
+  4. MANDATORY CONTINUITY HOOK:
+  Scene 1 of this NEW Episode ${continuation.episodeNumber} MUST BEGIN IMMEDIATELY after the final scene above.
+  - If a character was running, looking at something, speaking, or entering a room, Scene 1 starts at that exact instant.
+  - Maintain the atmosphere, geography, clothing, and tension from the cliffhanger.
+  - Then progressively unfold the new events requested by the user below.
+  ======================================================================
+  `;
+  }
+
   const prompt = `You are a master AI Cinema Director and Prompt Engineer for modern models (Midjourney v6/v7, Seedance 2.5, Kling 2.0). 
   Generate a complete production storyboard for a vertical video (9:16 aspect ratio).
-  
-  STORY CONTEXT: "${story}"
+  ${continuationInstructions}
+  STORY CONTEXT / NEW EPISODE EVENTS: "${story}"
   TARGET VISUAL STYLE: "${style}"
   REQUIRED SCENES: Exactly ${sceneCount} scenes.
   TARGET SCENE DURATION: ${sceneDuration} seconds per scene.
@@ -307,7 +367,7 @@ export async function generateStoryboard(
      - For humans, include distinctive clothing/facial features. 
      - For anthropomorphic trends (talking fruits, vegetables, animals), explicitly describe them as humanoid entities (e.g., 'An anthropomorphic broccoli character wearing a tiny denim jacket, with big expressive cartoon eyes and a wide smile'). 
      - For literal food/animals, describe texture, colors, species, or plating.
-     This EXACT string MUST be pasted word-for-word at the very beginning of both the imagePrompt and videoPrompt of every scene where they appear.
+     This EXACT string MUST be pasted word-for-word at the very beginning of both the imagePrompt and videoPrompt of every scene where they appear. If continuing an existing episode, retain any existing characters and only define new ones if they appear for the first time.
 
   4. CINEMATIC FLOW & CONTINUITY: Ensure seamless transitions between scenes. Do not abruptly spawn subjects in static poses. Account for how the previous scene ended. Use dynamic entrances, exits, and camera reveals (e.g., 'Camera follows character walking into the dimly lit room...', 'Starts on a tight close-up of the door opening, panning right to reveal the ghost...', 'Subject walks into the frame from the left...'). Create a realistic, flowing narrative pace.
 
