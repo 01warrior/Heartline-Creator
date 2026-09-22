@@ -73,7 +73,16 @@ export function StoryboardPage() {
   const [savedStoryboards, setSavedStoryboards] = useState<SavedStoryboard[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((item: any) => ({
+        ...item,
+        data: {
+          characters: Array.isArray(item?.data?.characters) ? item.data.characters : [],
+          scenes: Array.isArray(item?.data?.scenes) ? item.data.scenes : []
+        }
+      }));
     } catch {
       return [];
     }
@@ -96,13 +105,21 @@ export function StoryboardPage() {
   };
 
   const handleStartContinuation = (parentItem: SavedStoryboard) => {
+    if (!parentItem) return;
     const nextEp = (parentItem.episodeNumber || 1) + 1;
+    const safeParent: SavedStoryboard = {
+      ...parentItem,
+      data: {
+        characters: Array.isArray(parentItem?.data?.characters) ? parentItem.data.characters : [],
+        scenes: Array.isArray(parentItem?.data?.scenes) ? parentItem.data.scenes : []
+      }
+    };
     setContinuation({
       active: true,
-      parentItem,
+      parentItem: safeParent,
       episodeNumber: nextEp
     });
-    setStyle(parentItem.style);
+    if (parentItem.style) setStyle(parentItem.style);
     setStory('');
     setIsHistoryOpen(false);
     setError('');
@@ -129,23 +146,28 @@ export function StoryboardPage() {
     try {
       let continuationContext: StoryboardContinuationContext | undefined;
 
-      if (continuation && continuation.active) {
+      if (continuation && continuation.active && continuation.parentItem) {
         continuationContext = {
           episodeNumber: continuation.episodeNumber,
-          seriesTitle: continuation.parentItem.seriesTitle || continuation.parentItem.story.slice(0, 30),
-          previousStory: continuation.parentItem.story,
-          previousCharacters: continuation.parentItem.data.characters || [],
-          previousScenes: continuation.parentItem.data.scenes || []
+          seriesTitle: continuation.parentItem.seriesTitle || continuation.parentItem.story?.slice(0, 30) || 'Série',
+          previousStory: continuation.parentItem.story || '',
+          previousCharacters: Array.isArray(continuation.parentItem.data?.characters) ? continuation.parentItem.data.characters : [],
+          previousScenes: Array.isArray(continuation.parentItem.data?.scenes) ? continuation.parentItem.data.scenes : []
         };
       }
 
-      const data = await generateStoryboard(apiKey, scriptModel, story, style, sceneCount, sceneDuration, continuationContext);
-      setStoryboard(data);
+      const rawData = await generateStoryboard(apiKey, scriptModel, story, style, sceneCount, sceneDuration, continuationContext);
+      
+      const safeData: StoryboardData = {
+        characters: Array.isArray(rawData?.characters) ? rawData.characters : [],
+        scenes: Array.isArray(rawData?.scenes) ? rawData.scenes : []
+      };
+      setStoryboard(safeData);
 
       const nextEpNumber = continuation && continuation.active ? continuation.episodeNumber : 1;
       const seriesTitle = continuation && continuation.active
-        ? (continuation.parentItem.seriesTitle || continuation.parentItem.story.slice(0, 35) + '...')
-        : story.slice(0, 35) + '...';
+        ? (continuation.parentItem.seriesTitle || (continuation.parentItem.story ? continuation.parentItem.story.slice(0, 35) + '...' : 'Série'))
+        : (story ? story.slice(0, 35) + '...' : 'Storyboard');
 
       // Auto save to history
       const newEntry: SavedStoryboard = {
@@ -155,7 +177,7 @@ export function StoryboardPage() {
         style,
         sceneCount,
         sceneDuration,
-        data,
+        data: safeData,
         episodeNumber: nextEpNumber,
         seriesTitle,
         parentStoryboardId: continuation && continuation.active ? continuation.parentItem.id : undefined
@@ -174,11 +196,16 @@ export function StoryboardPage() {
   };
 
   const handleLoadStoryboard = (item: SavedStoryboard) => {
-    setStory(item.story);
-    setStyle(item.style);
-    setSceneCount(item.sceneCount);
-    setSceneDuration(item.sceneDuration);
-    setStoryboard(item.data);
+    if (!item) return;
+    setStory(item.story || '');
+    setStyle(item.style || 'Cinematic Noir');
+    setSceneCount(item.sceneCount || 8);
+    setSceneDuration(item.sceneDuration || 5);
+    const safeData: StoryboardData = {
+      characters: Array.isArray(item?.data?.characters) ? item.data.characters : [],
+      scenes: Array.isArray(item?.data?.scenes) ? item.data.scenes : []
+    };
+    setStoryboard(safeData);
     setCurrentSavedItem(item);
     setContinuation(null);
     setIsHistoryOpen(false);
@@ -265,17 +292,20 @@ export function StoryboardPage() {
               <div className="flex items-center justify-between text-[11px] font-bold text-amber-950">
                 <span>🎬 Point d'accroche (Fin de l'Épisode {continuation.episodeNumber - 1}) :</span>
                 <span className="font-mono text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
-                  Scène finale
+                  {continuation.parentItem?.data?.scenes && continuation.parentItem.data.scenes.length > 0
+                    ? `Scène ${continuation.parentItem.data.scenes.length}`
+                    : 'Scène finale'}
                 </span>
               </div>
               <p className="text-xs text-[#575047] italic leading-relaxed">
-                "{continuation.parentItem.data.scenes?.[continuation.parentItem.data.scenes.length - 1]?.frenchSummary || 
-                  continuation.parentItem.story}"
+                "{continuation.parentItem?.data?.scenes && continuation.parentItem.data.scenes.length > 0
+                  ? (continuation.parentItem.data.scenes[continuation.parentItem.data.scenes.length - 1]?.frenchSummary || continuation.parentItem.story)
+                  : (continuation.parentItem?.story || '')}"
               </p>
             </div>
 
             {/* Preserved Characters Badges */}
-            {continuation.parentItem.data.characters && continuation.parentItem.data.characters.length > 0 && (
+            {continuation.parentItem?.data?.characters && continuation.parentItem.data.characters.length > 0 && (
               <div className="flex items-center gap-2 text-[11px] text-[#7A7570] flex-wrap">
                 <span className="font-bold text-amber-950">Personnages conservés (continuité visuelle) :</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -562,7 +592,7 @@ export function StoryboardPage() {
             <div>
               <h3 className="text-base font-bold text-[#1A1A1A]">Envie de poursuivre cette saga ?</h3>
               <p className="text-xs text-[#7A7570] mt-0.5">
-                Créez l'Épisode {(currentSavedItem?.episodeNumber || 1) + 1} avec raccord direct sur la Scène {storyboard.scenes.length}.
+                Créez l'Épisode {(currentSavedItem?.episodeNumber || 1) + 1} avec raccord direct sur la Scène {storyboard.scenes?.length || 1}.
               </p>
             </div>
             <button
@@ -570,10 +600,10 @@ export function StoryboardPage() {
               onClick={() => handleStartContinuation(currentSavedItem || {
                 id: `temp_${Date.now()}`,
                 createdAt: Date.now(),
-                story,
-                style,
-                sceneCount,
-                sceneDuration,
+                story: story || '',
+                style: style || 'Cinematic Noir',
+                sceneCount: sceneCount || 8,
+                sceneDuration: sceneDuration || 5,
                 data: storyboard,
                 episodeNumber: 1
               })}
